@@ -1,34 +1,38 @@
+@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=VT323&display=swap");
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-html {
-  height: 100%;
+  --bg: #000000;
+  --fg: #00ff66;
+  --accent: #00ffaa;
+  --danger: #ff3366;
 }
 
 html,
 body {
+  min-height: 100%;
   max-width: 100vw;
   overflow-x: hidden;
 }
 
 body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg);
+  color: var(--fg);
+  font-family: "VT323", "Fira Code", monospace;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.02),
+    rgba(255, 255, 255, 0.02) 1px,
+    transparent 1px,
+    transparent 4px
+  );
 }
 
 * {
@@ -42,8 +46,203 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+.layout-shell {
+  width: 100%;
+  min-height: 100dvh;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel {
+  border: 1px solid var(--fg);
+  background: rgba(0, 30, 0, 0.5);
+  padding: 1rem;
+}
+
+.nested-panel {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.landing-panel {
+  width: min(42rem, 100%);
+  display: grid;
+  gap: 1rem;
+}
+
+.title {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  color: var(--accent);
+}
+
+.tagline {
+  font-size: clamp(1.3rem, 2vw, 1.8rem);
+}
+
+.btn {
+  border: 1px solid var(--fg);
+  background: transparent;
+  color: var(--fg);
+  padding: 0.5rem 0.8rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn:hover:not(:disabled),
+.btn-selected {
+  background: var(--fg);
+  color: #001006;
+}
+
+.btn-danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.btn-danger:hover {
+  background: var(--danger);
+  color: #110000;
+}
+
+.label {
+  font-size: 1.15rem;
+}
+
+.row {
+  display: flex;
+}
+
+.wrap {
+  flex-wrap: wrap;
+}
+
+.gap-sm {
+  gap: 0.6rem;
+}
+
+.align-center {
+  align-items: center;
+}
+
+.game-grid {
+  width: min(74rem, 100%);
+  display: grid;
+  grid-template-columns: 18rem 1fr;
+  gap: 1rem;
+}
+
+.participants-panel,
+.play-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.share-url {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.participant-list {
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.participant-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  border-bottom: 1px dashed rgba(0, 255, 102, 0.3);
+  padding-bottom: 0.35rem;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(3.5rem, 1fr));
+  gap: 0.5rem;
+}
+
+.card {
+  border: 1px solid var(--fg);
+  background: transparent;
+  color: var(--fg);
+  padding: 0.9rem 0.3rem;
+  min-height: 4.2rem;
+  font: inherit;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.card-selected,
+.card:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.distribution-list {
+  list-style: none;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.distribution-list li {
+  display: flex;
+  justify-content: space-between;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: grid;
+  place-items: center;
+  z-index: 2;
+}
+
+.modal-panel {
+  width: min(30rem, 92vw);
+  display: grid;
+  gap: 0.7rem;
+}
+
+.emoji-preview {
+  font-size: 2rem;
+}
+
+.terminal-input {
+  border: 1px solid var(--fg);
+  background: #000;
+  color: var(--fg);
+  font: inherit;
+  padding: 0.5rem;
+}
+
+.error-text {
+  color: var(--danger);
+}
+
+.room-not-found {
+  width: min(40rem, 100%);
+  display: grid;
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .game-grid {
+    grid-template-columns: 1fr;
   }
 }

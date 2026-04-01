@@ -1,36 +1,125 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Agile Arcade
 
-## Getting Started
+Agile Arcade is a Dockerized planning poker app with a retro terminal UI, built with Next.js + TypeScript + Socket.IO.
 
-First, run the development server:
+## Features
+
+- Room creation with 6-character IDs
+- Host + participant roles
+- Fibonacci and T-Shirt decks
+- Hidden voting, reveal, and reset round controls
+- Random emoji identity (name + emoji), persisted per room in localStorage
+- In-memory room state with 2-hour inactivity cleanup
+- Single container runtime (Next.js + WebSocket server in one Node process)
+
+## Tech Stack
+
+- Next.js 16 (App Router)
+- TypeScript
+- Socket.IO
+- Custom Node server (`server.js`)
+
+## Run Locally (Manual Testing)
+
+1. Install dependencies:
+
+	```bash
+	npm install
+	```
+
+2. Start the app:
+
+	```bash
+	npm run dev
+	```
+
+3. Open the app:
+
+	- Main URL: `http://localhost:3000`
+	- Join from a second browser/tab to simulate multiple participants.
+
+4. Manual test checklist:
+
+	- Create room from `/`
+	- Join room with two users
+	- Cast votes from both users
+	- Reveal votes (host only)
+	- Reset round (host only)
+	- Disconnect host and verify host promotion
+
+## Automated Smoke Test (Realtime Flow)
+
+With the app running, execute:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run test:smoke
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Optional custom base URL:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+AGILE_ARCADE_BASE_URL=http://127.0.0.1:3000 npm run test:smoke
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The smoke test validates room creation, join, hidden voting, reveal, reset, and host transfer.
 
-## Learn More
+## Production Build (Non-Docker)
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run build
+npm run start
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Docker
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Build and run locally:
 
-## Deploy on Vercel
+```bash
+docker build -t agile-arcade .
+docker run --rm -p 3000:3000 agile-arcade
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Or with compose:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+docker compose up --build
+```
+
+## Deploy
+
+This project is designed for any Docker-friendly host (Render, Fly.io, Railway, VPS, Kubernetes).
+
+Deployment checklist:
+
+1. Build and push the Docker image from `Dockerfile`.
+2. Expose container port `3000`.
+3. Set `NODE_ENV=production`.
+4. Run command is already defined in the image as `node server.js`.
+
+Platform notes:
+
+- Use a single instance for predictable in-memory room behavior.
+- Room state is ephemeral and stored in memory only.
+- Inactive rooms are cleaned up after 2 hours.
+
+## Known Limitations
+
+- **In-Memory State Only**: All room data is stored in memory and will be lost if the process restarts or crashes. No database persistence.
+- **Single Instance**: Room state is not shared across multiple app instances. Deploy as a single container (not horizontally scaled) unless you implement a shared state store (Redis, etc.).
+- **No Authentication**: Users are identified by name + emoji only. There is no account system, login, or permission/role model beyond host/participant.
+- **No Data Export**: Voted results are not stored; they are lost when the round is reset or the room expires.
+- **Ephemeral Cleanup**: Rooms inactive for > 2 hours are automatically deleted. Users will see "Room Not Found" if they rejoin after expiry.
+
+## WebSocket Events
+- `join_room` `{ roomId, name, emoji }`
+- `cast_vote` `{ roomId, value }`
+- `change_emoji` `{ roomId, emoji }`
+- `reveal_votes` `{ roomId }`
+- `reset_round` `{ roomId }`
+
+### Server → Client
+
+- `room_state`
+- `error`
+- `room_not_found`
+- `not_authorized`

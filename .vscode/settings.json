@@ -1,5 +1,9 @@
 {
     "chat.tools.terminal.autoApprove": {
-        "npx create-next-app@latest": true
+        "npx create-next-app@latest": true,
+        "/^cd /home/dillieo/projects/agile-arcade && npm install socket\\.io socket\\.io-client$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
     }
 }
