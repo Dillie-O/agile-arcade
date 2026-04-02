@@ -21,7 +21,7 @@ export function ResultsSummary({ participants, revealed }: Props) {
 
   return (
     <section className="panel nested-panel">
-      <h3>Results</h3>
+      <h3 className="section-subheading">Results</h3>
       <ul className="distribution-list">
         {Object.entries(distribution).map(([vote, count]) => (
           <li key={vote}>

@@ -5,11 +5,9 @@ import { useMemo, useState } from "react";
 type Props = {
   roomId: string;
   isConnected: boolean;
-  identityEmoji: string;
-  onChangeEmoji: () => void;
 };
 
-export function StatusBar({ roomId, isConnected, identityEmoji, onChangeEmoji }: Props) {
+export function StatusBar({ roomId, isConnected }: Props) {
   const [copied, setCopied] = useState(false);
 
   const shareUrl = useMemo(() => {
@@ -28,21 +26,22 @@ export function StatusBar({ roomId, isConnected, identityEmoji, onChangeEmoji }:
 
   return (
     <section className="panel nested-panel">
-      <div className="status-row">
-        <span>Room: {roomId}</span>
-        <span>{isConnected ? "ONLINE" : "OFFLINE"}</span>
+      <div className="room-code-block">
+        <span className="secondary-text">Room Code</span>
+        <strong className="room-code">{roomId}</strong>
       </div>
 
-      <div className="status-row wrap">
-        <span className="share-url">{shareUrl}</span>
+      <div className="status-row room-url-row wrap">
+        <span className="share-url secondary-text">{shareUrl}</span>
         <button className="btn" type="button" onClick={onCopy}>
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
 
-      <button className="btn" type="button" onClick={onChangeEmoji}>
-        Change Emoji {identityEmoji}
-      </button>
+      <div className="status-row">
+        <span className="secondary-text">Connection</span>
+        <span className="secondary-text">{isConnected ? "ONLINE" : "OFFLINE"}</span>
+      </div>
     </section>
   );
 }

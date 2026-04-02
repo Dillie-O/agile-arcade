@@ -28,11 +28,19 @@ body::before {
   pointer-events: none;
   background: repeating-linear-gradient(
     to bottom,
-    rgba(255, 255, 255, 0.02),
-    rgba(255, 255, 255, 0.02) 1px,
+    rgba(255, 255, 255, 0.03),
+    rgba(255, 255, 255, 0.03) 1px,
     transparent 1px,
     transparent 4px
   );
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at center, transparent 55%, rgba(0, 0, 0, 0.45) 100%);
 }
 
 * {
@@ -49,7 +57,7 @@ a {
 .layout-shell {
   width: 100%;
   min-height: 100dvh;
-  padding: 1rem;
+  padding: 1.3rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -58,7 +66,8 @@ a {
 .panel {
   border: 1px solid var(--fg);
   background: rgba(0, 30, 0, 0.5);
-  padding: 1rem;
+  padding: 1.3rem;
+  box-shadow: 0 0 18px rgba(0, 255, 102, 0.16);
 }
 
 .nested-panel {
@@ -66,25 +75,25 @@ a {
 }
 
 .landing-panel {
-  width: min(42rem, 100%);
+  width: min(54.6rem, 100%);
   display: grid;
-  gap: 1rem;
+  gap: 1.3rem;
 }
 
 .title {
-  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-size: clamp(3.25rem, 5vw, 5.2rem);
   color: var(--accent);
 }
 
 .tagline {
-  font-size: clamp(1.3rem, 2vw, 1.8rem);
+  font-size: clamp(1.69rem, 2vw, 2.34rem);
 }
 
 .btn {
   border: 1px solid var(--fg);
   background: transparent;
-  color: var(--fg);
-  padding: 0.5rem 0.8rem;
+  color: var(--accent);
+  padding: 0.65rem 1.04rem;
   font: inherit;
   cursor: pointer;
 }
@@ -96,7 +105,7 @@ a {
 
 .btn:hover:not(:disabled),
 .btn-selected {
-  background: var(--fg);
+  background: var(--accent);
   color: #001006;
 }
 
@@ -111,7 +120,25 @@ a {
 }
 
 .label {
-  font-size: 1.15rem;
+  font-size: 1.495rem;
+}
+
+.section-heading {
+  font-size: 2.1rem;
+  color: var(--fg);
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 8px rgba(0, 255, 102, 0.45);
+}
+
+.section-subheading {
+  font-size: 1.8rem;
+  color: var(--fg);
+  letter-spacing: 0.03em;
+  text-shadow: 0 0 6px rgba(0, 255, 102, 0.35);
+}
+
+.secondary-text {
+  color: rgba(0, 255, 102, 0.72);
 }
 
 .row {
@@ -123,7 +150,7 @@ a {
 }
 
 .gap-sm {
-  gap: 0.6rem;
+  gap: 0.78rem;
 }
 
 .align-center {
@@ -131,77 +158,165 @@ a {
 }
 
 .game-grid {
-  width: min(74rem, 100%);
+  width: min(96.2rem, 100%);
   display: grid;
-  grid-template-columns: 18rem 1fr;
-  gap: 1rem;
+  grid-template-columns: 23.4rem 1fr;
+  gap: 1.3rem;
 }
 
 .participants-panel,
 .play-panel {
   display: grid;
-  gap: 1rem;
+  gap: 1.3rem;
+  align-content: start;
 }
 
 .status-row {
   display: flex;
   justify-content: space-between;
-  gap: 0.6rem;
+  gap: 0.78rem;
+  align-items: center;
+  min-width: 0;
 }
 
 .share-url {
-  max-width: 100%;
+  flex: 1;
+  min-width: 0;
+  max-width: 70%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.room-code-block {
+  border: 1px solid rgba(0, 255, 102, 0.45);
+  padding: 1.04rem;
+  display: grid;
+  gap: 0.52rem;
+  text-align: center;
+}
+
+.room-code {
+  font-size: clamp(2rem, 6vw, 3rem);
+  letter-spacing: 0.12em;
+}
+
+.room-url-row {
+  border: 1px solid rgba(0, 255, 102, 0.35);
+  padding: 0.78rem;
+}
+
+.room-url-row .btn {
+  flex-shrink: 0;
+}
+
 .participant-list {
   list-style: none;
   display: grid;
-  gap: 0.5rem;
+  gap: 0.91rem;
 }
 
 .participant-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.8rem;
-  border-bottom: 1px dashed rgba(0, 255, 102, 0.3);
-  padding-bottom: 0.35rem;
+  display: grid;
+  gap: 0.65rem;
+  border: 1px solid rgba(0, 255, 102, 0.42);
+  box-shadow: 0 0 10px rgba(0, 255, 102, 0.14);
+  padding: 0.78rem;
+}
+
+.participant-main {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 0.78rem;
+  align-items: center;
+}
+
+.participant-emoji {
+  font-size: 1.95rem;
+  line-height: 1;
+}
+
+.participant-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.participant-status {
+  color: rgba(0, 255, 102, 0.72);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.host-badge {
+  border: 1px solid var(--fg);
+  padding: 0.2rem 0.45rem;
+  font-size: 1.1rem;
+  letter-spacing: 0.03em;
+}
+
+.participant-emoji-btn {
+  justify-self: start;
 }
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(3.5rem, 1fr));
-  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(5.2rem, 1fr));
+  gap: 0.91rem;
 }
 
 .card {
   border: 1px solid var(--fg);
   background: transparent;
   color: var(--fg);
-  padding: 0.9rem 0.3rem;
-  min-height: 4.2rem;
+  padding: 1.35rem 0.52rem;
+  min-height: 6.2rem;
   font: inherit;
-  font-size: 1.4rem;
+  font-size: 1.95rem;
   cursor: pointer;
+  transition: box-shadow 120ms ease, border-color 120ms ease, color 120ms ease;
 }
 
 .card-selected,
 .card:hover {
   border-color: var(--accent);
   color: var(--accent);
+  box-shadow: 0 0 13px rgba(0, 255, 170, 0.42);
+}
+
+.card-selected {
+  background: rgba(0, 255, 170, 0.08);
 }
 
 .distribution-list {
   list-style: none;
   display: grid;
-  gap: 0.3rem;
+  gap: 0.39rem;
 }
 
 .distribution-list li {
   display: flex;
   justify-content: space-between;
+}
+
+.host-controls {
+  display: grid;
+  gap: 0.91rem;
+}
+
+.host-controls-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.78rem;
+  flex-wrap: wrap;
+}
+
+.you-host-badge {
+  border: 1px solid var(--fg);
+  color: var(--fg);
+  padding: 0.2rem 0.45rem;
 }
 
 .modal-overlay {
@@ -214,13 +329,13 @@ a {
 }
 
 .modal-panel {
-  width: min(30rem, 92vw);
+  width: min(39rem, 92vw);
   display: grid;
-  gap: 0.7rem;
+  gap: 0.91rem;
 }
 
 .emoji-preview {
-  font-size: 2rem;
+  font-size: 2.6rem;
 }
 
 .terminal-input {
@@ -228,7 +343,7 @@ a {
   background: #000;
   color: var(--fg);
   font: inherit;
-  padding: 0.5rem;
+  padding: 0.65rem;
 }
 
 .error-text {
@@ -236,13 +351,156 @@ a {
 }
 
 .room-not-found {
-  width: min(40rem, 100%);
+  width: min(52rem, 100%);
   display: grid;
-  gap: 1rem;
+  gap: 1.3rem;
 }
 
 @media (max-width: 900px) {
   .game-grid {
     grid-template-columns: 1fr;
+  }
+
+  .participant-main {
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "emoji name"
+      "badge status";
+  }
+
+  .participant-emoji {
+    grid-area: emoji;
+  }
+
+  .participant-name {
+    grid-area: name;
+  }
+
+  .host-badge {
+    grid-area: badge;
+    justify-self: start;
+  }
+
+  .participant-status {
+    grid-area: status;
+    justify-self: end;
+  }
+}
+
+@media (max-width: 640px) {
+  .layout-shell,
+  .panel {
+    padding: 1rem;
+  }
+
+  .section-heading {
+    font-size: 1.8rem;
+  }
+
+  .section-subheading {
+    font-size: 1.55rem;
+  }
+
+  .status-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .share-url {
+    max-width: 100%;
+  }
+
+  .room-url-row {
+    gap: 0.65rem;
+  }
+
+  .room-url-row .btn {
+    align-self: flex-end;
+  }
+}
+
+@media (max-width: 420px) {
+  .layout-shell,
+  .panel {
+    padding: 0.85rem;
+  }
+
+  .room-code {
+    font-size: 1.75rem;
+    letter-spacing: 0.08em;
+  }
+
+  .card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(4.25rem, 1fr));
+    gap: 0.65rem;
+  }
+
+  .card {
+    min-height: 5.2rem;
+    padding: 1rem 0.4rem;
+    font-size: 1.65rem;
+  }
+
+  .participant-main {
+    gap: 0.6rem;
+  }
+
+  .participant-emoji {
+    font-size: 1.6rem;
+  }
+
+  .host-badge,
+  .you-host-badge {
+    font-size: 0.95rem;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 700px) {
+  .layout-shell {
+    align-items: flex-start;
+    padding: 0.85rem;
+  }
+
+  .game-grid {
+    gap: 0.85rem;
+  }
+
+  .participants-panel,
+  .play-panel,
+  .host-controls,
+  .participant-list {
+    gap: 0.65rem;
+  }
+
+  .panel {
+    padding: 0.85rem;
+  }
+
+  .room-code {
+    font-size: 1.8rem;
+    letter-spacing: 0.08em;
+  }
+
+  .card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(4.4rem, 1fr));
+    gap: 0.65rem;
+  }
+
+  .card {
+    min-height: 4.8rem;
+    padding: 0.78rem 0.35rem;
+    font-size: 1.55rem;
+  }
+
+  .section-heading {
+    font-size: 1.65rem;
+  }
+
+  .section-subheading {
+    font-size: 1.4rem;
+  }
+
+  .status-row {
+    gap: 0.52rem;
   }
 }

@@ -165,16 +165,19 @@ export function GameRoom({ roomId }: Props) {
 
       <main className="game-grid">
         <section className="panel participants-panel">
-          <h2>Participants</h2>
-          <ParticipantList participants={room?.participants ?? []} revealed={Boolean(room?.revealed)} />
+          <h2 className="section-heading">Participants</h2>
+          <ParticipantList
+            participants={room?.participants ?? []}
+            revealed={Boolean(room?.revealed)}
+            myId={myId}
+            onChangeEmoji={onChangeEmoji}
+          />
         </section>
 
         <section className="panel play-panel">
           <StatusBar
             roomId={roomId}
             isConnected={isConnected}
-            identityEmoji={identity?.emoji ?? "🎮"}
-            onChangeEmoji={onChangeEmoji}
           />
 
           <CardDeck
