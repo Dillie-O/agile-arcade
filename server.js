@@ -74,10 +74,13 @@ app.prepare().then(() => {
   };
 
   io.on("connection", (socket) => {
+    let lastVoteAt = 0;
+
     socket.on("join_room", (payload = {}) => {
       const roomId = String(payload.roomId || "").toUpperCase();
       const name = String(payload.name || "").trim();
       const emoji = String(payload.emoji || "🎮").trim() || "🎮";
+      const participantId = String(payload.participantId || socket.id).trim() || socket.id;
 
       if (!roomId || !name) {
         socket.emit("error", "Invalid room or name");
@@ -92,13 +95,15 @@ app.prepare().then(() => {
 
       socket.join(roomId);
       socket.data.roomId = roomId;
-      socket.data.participantId = socket.id;
+      socket.data.participantId = participantId;
 
-      addParticipant(roomId, {
-        id: socket.id,
-        name,
-        emoji,
-      });
+      const existing = room.participants.find((p) => p.id === participantId);
+      if (existing) {
+        existing.name = name;
+        existing.emoji = emoji;
+      } else {
+        addParticipant(roomId, { id: participantId, name, emoji });
+      }
 
       touchRoom(roomId);
       emitRoom(roomId);
@@ -124,6 +129,12 @@ app.prepare().then(() => {
         socket.emit("error", "Invalid vote value");
         return;
       }
+
+      const now = Date.now();
+      if (now - lastVoteAt < 500) {
+        return;
+      }
+      lastVoteAt = now;
 
       setParticipantVote(roomId, participantId, value);
       touchRoom(roomId);

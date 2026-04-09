@@ -22,4 +22,5 @@ export type Room = {
 export type Identity = {
   name: string;
   emoji: string;
+  participantId?: string;
 };

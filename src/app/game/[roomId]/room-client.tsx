@@ -36,6 +36,10 @@ export function GameRoom({ roomId }: Props) {
     try {
       const parsed = JSON.parse(raw) as Identity;
       if (parsed.name && parsed.emoji) {
+        if (!parsed.participantId) {
+          parsed.participantId = crypto.randomUUID();
+          localStorage.setItem(getIdentityKey(roomId), JSON.stringify(parsed));
+        }
         return parsed;
       }
       return null;
@@ -63,12 +67,13 @@ export function GameRoom({ roomId }: Props) {
         roomId,
         name: identity.name,
         emoji: identity.emoji,
+        participantId: identity.participantId,
       });
     };
 
     socket.on("connect", () => {
       setIsConnected(true);
-      setMyId(socket.id ?? null);
+      setMyId(identity.participantId ?? socket.id ?? null);
       emitJoin();
     });
 
@@ -110,8 +115,9 @@ export function GameRoom({ roomId }: Props) {
   }, [room, myId]);
 
   const onJoin = (nextIdentity: Identity) => {
-    localStorage.setItem(getIdentityKey(roomId), JSON.stringify(nextIdentity));
-    setIdentity(nextIdentity);
+    const identityWithId = { ...nextIdentity, participantId: crypto.randomUUID() };
+    localStorage.setItem(getIdentityKey(roomId), JSON.stringify(identityWithId));
+    setIdentity(identityWithId);
   };
 
   const onCastVote = (value: string) => {
