@@ -23,36 +23,31 @@ const getIdentityKey = (roomId: string) => `agile-arcade:${roomId}:identity`;
 export function GameRoom({ roomId }: Props) {
   const socketRef = useRef<Socket | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
-  const [identity, setIdentity] = useState<Identity | null>(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-
-    const raw = localStorage.getItem(getIdentityKey(roomId));
-    if (!raw) {
-      return null;
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as Identity;
-      if (parsed.name && parsed.emoji) {
-        if (!parsed.participantId) {
-          parsed.participantId = crypto.randomUUID();
-          localStorage.setItem(getIdentityKey(roomId), JSON.stringify(parsed));
-        }
-        return parsed;
-      }
-      return null;
-    } catch {
-      localStorage.removeItem(getIdentityKey(roomId));
-      return null;
-    }
-  });
+  const [identity, setIdentity] = useState<Identity | null>(null);
+  const [identityLoaded, setIdentityLoaded] = useState(false);
   const [myId, setMyId] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [roomNotFound, setRoomNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const initialEmoji = useMemo(() => randomEmoji(), []);
+
+  useEffect(() => {
+    const raw = localStorage.getItem(getIdentityKey(roomId));
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as Identity;
+        if (parsed.name && parsed.emoji) {
+          if (!parsed.participantId) {
+            parsed.participantId = crypto.randomUUID();
+            localStorage.setItem(getIdentityKey(roomId), JSON.stringify(parsed));
+          }
+          setIdentity(parsed);
+        }
+      } catch {
+        localStorage.removeItem(getIdentityKey(roomId));
+      }
+    }
+    setIdentityLoaded(true);
+  }, [roomId]);
 
   useEffect(() => {
     if (!identity) {
@@ -156,8 +151,7 @@ export function GameRoom({ roomId }: Props) {
   return (
     <LayoutShell>
       <JoinModal
-        isOpen={!identity}
-        initialEmoji={initialEmoji}
+        isOpen={identityLoaded && !identity}
         onSubmit={onJoin}
         onRandomizeEmoji={randomEmoji}
       />
