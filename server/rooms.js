@@ -4,6 +4,16 @@ const rooms = new Map();
 
 const validDeckTypes = ["fibonacci", "tshirt"];
 
+const VALID_VOTES = {
+  fibonacci: ["1", "2", "3", "5", "8", "13", "21", "☕"],
+  tshirt: ["XS", "S", "M", "L", "XL", "?", "∞", "☕"],
+};
+
+const isValidVote = (deckType, value) => {
+  const deck = VALID_VOTES[deckType];
+  return deck ? deck.includes(value) : false;
+};
+
 const generateRoomId = () => {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let id = "";
@@ -180,7 +190,14 @@ const resetRound = (roomId) => {
 const roomToSnapshot = (room) => ({
   id: room.id,
   deckType: room.deckType,
-  participants: room.participants.map((item) => ({ ...item })),
+  participants: room.participants.map((item) => ({
+    id: item.id,
+    name: item.name,
+    emoji: item.emoji,
+    hasVoted: item.hasVoted,
+    isHost: item.isHost,
+    vote: room.revealed ? item.vote : undefined,
+  })),
   story: room.story,
   revealed: room.revealed,
   createdAt: room.createdAt,
@@ -213,5 +230,6 @@ module.exports = {
   revealVotes,
   resetRound,
   roomToSnapshot,
+  isValidVote,
   startCleanupJob,
 };

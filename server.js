@@ -14,6 +14,7 @@ const {
   setRoomStory,
   revealVotes,
   resetRound,
+  isValidVote,
   startCleanupJob,
 } = require("./server/rooms");
 
@@ -116,6 +117,11 @@ app.prepare().then(() => {
       const room = getRoom(roomId);
       if (!room) {
         socket.emit("room_not_found");
+        return;
+      }
+
+      if (!isValidVote(room.deckType, value)) {
+        socket.emit("error", "Invalid vote value");
         return;
       }
 
