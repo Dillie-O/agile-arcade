@@ -37,6 +37,13 @@ export function ResultsSummary({ participants, revealed, deckType }: Props) {
     return ai - bi;
   });
 
+  const votersByValue = participants.reduce<Record<string, string[]>>((acc, p) => {
+    if (p.vote) {
+      acc[p.vote] = acc[p.vote] ? [...acc[p.vote], p.name] : [p.name];
+    }
+    return acc;
+  }, {});
+
   const winnerEntries = allSorted.filter(([, c]) => c === maxCount);
   const minorEntries = allSorted.filter(([, c]) => c < maxCount);
 
@@ -56,9 +63,10 @@ export function ResultsSummary({ participants, revealed, deckType }: Props) {
 
   const renderWinner = (value: string, count: number) => {
     const pct = Math.round((count / votes.length) * 100);
+    const voters = (votersByValue[value] ?? []).join(", ");
     return (
       <div key={value} className="result-center">
-        <div className={`result-card card ${cardTone(value)}`}>{value}</div>
+        <div className={`result-card card ${cardTone(value)}`} title={voters}>{value}</div>
         <p
           className="alignment-label"
           title={`${pct}% of voters chose this value (alignment)`}
@@ -71,9 +79,10 @@ export function ResultsSummary({ participants, revealed, deckType }: Props) {
 
   const renderMinor = (value: string, count: number) => {
     const pct = Math.round((count / votes.length) * 100);
+    const voters = (votersByValue[value] ?? []).join(", ");
     return (
       <div key={value} className="result-minor">
-        <div className={`result-card-minor card ${cardTone(value)}`}>{value}</div>
+        <div className={`result-card-minor card ${cardTone(value)}`} title={voters}>{value}</div>
         <p
           className="alignment-label alignment-label-minor"
           title={`${pct}% of voters chose this value`}

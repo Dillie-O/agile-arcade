@@ -497,6 +497,17 @@ p {
   filter: saturate(1.08);
 }
 
+.has-voted .card:not(.selected) {
+  opacity: 0.35;
+  filter: saturate(0.4);
+}
+
+.has-voted .card:not(.selected):hover {
+  opacity: 0.65;
+  filter: saturate(0.7);
+  transform: translateY(-2px);
+}
+
 .card-red {
   background: linear-gradient(180deg, #ef6f61 0%, #c92f25 100%);
 }

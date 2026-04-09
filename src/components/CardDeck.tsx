@@ -9,7 +9,7 @@ type Props = {
 
 export function CardDeck({ deckType, selectedValue, onSelect }: Props) {
   return (
-    <div className="card-grid">
+    <div className={`card-grid${selectedValue ? " has-voted" : ""}`}>
       {DECKS[deckType].map((value) => {
         const toneClass = ["1", "2", "3", "5"].includes(value) ? "card-red" : "card-green";
 
