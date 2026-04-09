@@ -28,6 +28,7 @@ const createRoom = (deckType = "fibonacci") => {
     id: roomId,
     deckType: normalizedDeckType,
     participants: [],
+    story: "",
     revealed: false,
     createdAt: now,
     lastActivityAt: now,
@@ -120,6 +121,38 @@ const setParticipantEmoji = (roomId, participantId, emoji) => {
   participant.emoji = emoji;
 };
 
+const setParticipantProfile = (roomId, participantId, profile = {}) => {
+  const room = getRoom(roomId);
+  if (!room) {
+    return;
+  }
+
+  const participant = room.participants.find((item) => item.id === participantId);
+  if (!participant) {
+    return;
+  }
+
+  const nextName = String(profile.name || "").trim();
+  const nextEmoji = String(profile.emoji || "").trim();
+
+  if (nextName) {
+    participant.name = nextName.slice(0, 30);
+  }
+
+  if (nextEmoji) {
+    participant.emoji = nextEmoji;
+  }
+};
+
+const setRoomStory = (roomId, story = "") => {
+  const room = getRoom(roomId);
+  if (!room) {
+    return;
+  }
+
+  room.story = String(story).slice(0, 140);
+};
+
 const revealVotes = (roomId) => {
   const room = getRoom(roomId);
   if (!room) {
@@ -136,6 +169,7 @@ const resetRound = (roomId) => {
   }
 
   room.revealed = false;
+  room.story = "";
   room.participants = room.participants.map((item) => ({
     ...item,
     vote: undefined,
@@ -147,6 +181,7 @@ const roomToSnapshot = (room) => ({
   id: room.id,
   deckType: room.deckType,
   participants: room.participants.map((item) => ({ ...item })),
+  story: room.story,
   revealed: room.revealed,
   createdAt: room.createdAt,
   lastActivityAt: room.lastActivityAt,
@@ -173,6 +208,8 @@ module.exports = {
   removeParticipant,
   setParticipantVote,
   setParticipantEmoji,
+  setParticipantProfile,
+  setRoomStory,
   revealVotes,
   resetRound,
   roomToSnapshot,

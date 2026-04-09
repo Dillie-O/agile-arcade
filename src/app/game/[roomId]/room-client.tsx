@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { io, Socket } from "socket.io-client";
 import { CardDeck } from "@/components/CardDeck";
@@ -125,16 +126,8 @@ export function GameRoom({ roomId }: Props) {
     socketRef.current?.emit("reset_round", { roomId });
   };
 
-  const onChangeEmoji = () => {
-    if (!identity) {
-      return;
-    }
-
-    const emoji = randomEmoji();
-    const nextIdentity = { ...identity, emoji };
-    localStorage.setItem(getIdentityKey(roomId), JSON.stringify(nextIdentity));
-    setIdentity(nextIdentity);
-    socketRef.current?.emit("change_emoji", { roomId, emoji });
+  const onUpdateStory = (story: string) => {
+    socketRef.current?.emit("update_story", { roomId, story });
   };
 
   if (roomNotFound) {
@@ -143,7 +136,7 @@ export function GameRoom({ roomId }: Props) {
         <main className="panel room-not-found">
           <h1>Room Not Found</h1>
           <p>That room has expired or does not exist.</p>
-          <Link href="/" className="btn">
+          <Link href="/" className="button">
             Return Home
           </Link>
         </main>
@@ -163,39 +156,75 @@ export function GameRoom({ roomId }: Props) {
         onRandomizeEmoji={randomEmoji}
       />
 
-      <main className="game-grid">
-        <section className="panel participants-panel">
-          <h2 className="section-heading">Participants</h2>
-          <ParticipantList
-            participants={room?.participants ?? []}
-            revealed={Boolean(room?.revealed)}
-            myId={myId}
-            onChangeEmoji={onChangeEmoji}
-          />
-        </section>
+      <main className="room-layout">
+        <header className="panel app-header room-header">
+          <Image src="/logo_banner.webp" alt="Agile Arcade" className="banner-img" width={640} height={120} priority />
+        </header>
 
-        <section className="panel play-panel">
-          <StatusBar
-            roomId={roomId}
-            isConnected={isConnected}
-          />
+        <StatusBar roomId={roomId} isConnected={isConnected} />
 
-          <CardDeck
-            deckType={room?.deckType ?? "fibonacci"}
-            selectedValue={selectedVote}
-            onSelect={onCastVote}
-          />
+        <section className="game-grid">
+          <section className="panel participants-panel">
+            <h2 className="section-heading">Participants</h2>
+            <ParticipantList
+              participants={room?.participants ?? []}
+              revealed={Boolean(room?.revealed)}
+              myId={myId}
+            />
+          </section>
 
-          <Controls
-            isHost={isHost}
-            revealed={Boolean(room?.revealed)}
-            onReveal={onRevealVotes}
-            onReset={onResetRound}
-          />
+          <section className="panel play-panel">
+            <div className="story-row">
+              <span className="label">Story:</span>
+              {isHost ? (
+                <input
+                  id="story-input"
+                  type="text"
+                  className="terminal-input story-input"
+                  value={room?.story ?? ""}
+                  onChange={(event) => onUpdateStory(event.target.value)}
+                  placeholder="Enter story or URL..."
+                  disabled={Boolean(room?.revealed)}
+                />
+              ) : (
+                <span className="story-display">{room?.story || "No story set"}</span>
+              )}
+              {(room?.story ?? "").match(/^https?:\/\/\S+$/) ? (
+                <a
+                  href={room?.story}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="button story-link-btn"
+                  title="Open link"
+                >
+                  ↗
+                </a>
+              ) : null}
+            </div>
 
-          <ResultsSummary participants={room?.participants ?? []} revealed={Boolean(room?.revealed)} />
+            <ResultsSummary
+              participants={room?.participants ?? []}
+              revealed={Boolean(room?.revealed)}
+              deckType={room?.deckType ?? "fibonacci"}
+            />
 
-          {error ? <p className="error-text">{error}</p> : null}
+            <h2 className="section-heading">Select Your Card</h2>
+
+            <CardDeck
+              deckType={room?.deckType ?? "fibonacci"}
+              selectedValue={selectedVote}
+              onSelect={onCastVote}
+            />
+
+            <Controls
+              isHost={isHost}
+              revealed={Boolean(room?.revealed)}
+              onReveal={onRevealVotes}
+              onReset={onResetRound}
+            />
+
+            {error ? <p className="error-text">{error}</p> : null}
+          </section>
         </section>
       </main>
     </LayoutShell>

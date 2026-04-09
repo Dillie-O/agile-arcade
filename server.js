@@ -10,6 +10,8 @@ const {
   removeParticipant,
   setParticipantVote,
   setParticipantEmoji,
+  setParticipantProfile,
+  setRoomStory,
   revealVotes,
   resetRound,
   startCleanupJob,
@@ -119,6 +121,18 @@ app.prepare().then(() => {
 
       setParticipantVote(roomId, participantId, value);
       touchRoom(roomId);
+
+      const updatedRoom = getRoom(roomId);
+      const allVoted =
+        updatedRoom &&
+        updatedRoom.participants.length > 0 &&
+        updatedRoom.participants.every((p) => p.hasVoted) &&
+        !updatedRoom.revealed;
+
+      if (allVoted) {
+        revealVotes(roomId);
+      }
+
       emitRoom(roomId);
     });
 
@@ -139,6 +153,50 @@ app.prepare().then(() => {
       }
 
       setParticipantEmoji(roomId, participantId, emoji);
+      touchRoom(roomId);
+      emitRoom(roomId);
+    });
+
+    socket.on("update_profile", (payload = {}) => {
+      const roomId = String(payload.roomId || socket.data.roomId || "").toUpperCase();
+      const name = String(payload.name || "").trim();
+      const emoji = String(payload.emoji || "").trim();
+      const participantId = socket.data.participantId || socket.id;
+
+      if (!roomId) {
+        socket.emit("error", "Invalid profile payload");
+        return;
+      }
+
+      const room = getRoom(roomId);
+      if (!room) {
+        socket.emit("room_not_found");
+        return;
+      }
+
+      setParticipantProfile(roomId, participantId, { name, emoji });
+      touchRoom(roomId);
+      emitRoom(roomId);
+    });
+
+    socket.on("update_story", (payload = {}) => {
+      const roomId = String(payload.roomId || socket.data.roomId || "").toUpperCase();
+      const story = String(payload.story || "");
+      const participantId = socket.data.participantId || socket.id;
+      const room = getRoom(roomId);
+
+      if (!room) {
+        socket.emit("room_not_found");
+        return;
+      }
+
+      const participant = room.participants.find((item) => item.id === participantId);
+      if (!participant || !participant.isHost) {
+        socket.emit("not_authorized");
+        return;
+      }
+
+      setRoomStory(roomId, story);
       touchRoom(roomId);
       emitRoom(roomId);
     });

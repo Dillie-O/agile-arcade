@@ -13,6 +13,7 @@ export type Room = {
   id: string;
   deckType: DeckType;
   participants: Participant[];
+  story: string;
   revealed: boolean;
   createdAt: number;
   lastActivityAt: number;

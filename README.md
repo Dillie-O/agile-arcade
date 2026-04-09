@@ -19,6 +19,28 @@ Agile Arcade is a Dockerized planning poker app with a retro terminal UI, built 
 - Socket.IO
 - Custom Node server (`server.js`)
 
+## Theme System (Retro Terminal)
+
+The UI theme is centralized in [src/app/globals.css](src/app/globals.css) using design tokens and primitive classes.
+
+### Design Tokens
+
+- **Color tokens**: terminal palette, muted/dim text, accent, danger, borders
+- **Typography tokens**: body + heading fonts, text scales, line heights
+- **Spacing tokens**: `--space-*` scale used for layout/padding/gaps
+- **Border/radius tokens**: thin/strong borders and small radii
+- **Effect tokens**: glow, card shadow, CRT scanline overlay
+- **Layout tokens**: max widths, grid gap, base card size
+
+### Primitive Class Conventions
+
+- **Buttons**: `.button`, `.button-danger`, `.selected`
+- **Cards**: `.card`, `.card-grid`, `.card.selected`
+- **Panels**: `.panel`, `.nested-panel`
+- **Participant UI**: `.participant-row`, `.participant-status`, `.participant-host-badge`
+
+If you add new UI, prefer reusing these tokens/classes instead of introducing new hard-coded values.
+
 ## Run Locally (Manual Testing)
 
 1. Install dependencies:

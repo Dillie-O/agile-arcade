@@ -4,30 +4,35 @@ type Props = {
   participants: Participant[];
   revealed: boolean;
   myId: string | null;
-  onChangeEmoji: () => void;
 };
 
-export function ParticipantList({ participants, revealed, myId, onChangeEmoji }: Props) {
+export function ParticipantList({ participants, revealed, myId }: Props) {
   return (
     <ul className="participant-list">
-      {participants.map((participant) => (
-        <li className="participant-row" key={participant.id}>
-          <div className="participant-main">
-            <span className="participant-emoji">{participant.emoji}</span>
-            <span className="participant-name">{participant.name}</span>
-            {participant.isHost ? <span className="host-badge">HOST</span> : null}
-            <strong className="participant-status">
-              {revealed ? participant.vote || "-" : participant.hasVoted ? "voted" : "waiting"}
-            </strong>
-          </div>
+      {participants.slice(0, 8).map((participant) => {
+        const isMe = participant.id === myId;
+        const stateLabel = participant.hasVoted || participant.vote ? "Ready!" : "Waiting...";
+        const displayStatus = revealed && participant.vote ? `${stateLabel} ${participant.vote}` : stateLabel;
+        const emojiClass = participant.isHost
+          ? "participant-emoji participant-emoji--host"
+          : isMe
+          ? "participant-emoji participant-emoji--me"
+          : "participant-emoji";
 
-          {participant.id === myId ? (
-            <button className="btn participant-emoji-btn" type="button" onClick={onChangeEmoji}>
-              Change Emoji
-            </button>
-          ) : null}
-        </li>
-      ))}
+        return (
+          <li className="participant-row" key={participant.id}>
+            <div className="participant-main">
+              <span className={emojiClass}>{participant.emoji}</span>
+              <span className="participant-name">{participant.name}</span>
+              <strong
+                className={`participant-status ${stateLabel === "Ready!" ? "status-ready" : "status-waiting"}`}
+              >
+                {displayStatus}
+              </strong>
+            </div>
+          </li>
+        );
+      })}
     </ul>
   );
 }

@@ -12,17 +12,12 @@ export function Controls({ isHost, revealed, onReveal, onReset }: Props) {
 
   return (
     <section className="panel nested-panel host-controls">
-      <div className="host-controls-header">
-        <h3 className="section-heading">Host Controls</h3>
-        <span className="you-host-badge">You are the host</span>
-      </div>
-
-      <div className="row gap-sm wrap">
-        <button className="btn" type="button" onClick={onReveal} disabled={revealed}>
-          Reveal Votes
+      <div className="row gap-sm wrap" style={{ justifyContent: "center" }}>
+        <button className="button button-danger" type="button" onClick={onReveal} disabled={revealed}>
+          Reveal Cards
         </button>
-        <button className="btn btn-danger" type="button" onClick={onReset}>
-          Reset Round
+        <button className="button button-blue" type="button" onClick={onReset}>
+          Next Round
         </button>
       </div>
     </section>

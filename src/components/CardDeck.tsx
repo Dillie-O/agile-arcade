@@ -10,16 +10,20 @@ type Props = {
 export function CardDeck({ deckType, selectedValue, onSelect }: Props) {
   return (
     <div className="card-grid">
-      {DECKS[deckType].map((value) => (
-        <button
-          key={value}
-          type="button"
-          onClick={() => onSelect(value)}
-          className={`card ${selectedValue === value ? "card-selected" : ""}`}
-        >
-          {value}
-        </button>
-      ))}
+      {DECKS[deckType].map((value) => {
+        const toneClass = ["1", "2", "3", "5"].includes(value) ? "card-red" : "card-green";
+
+        return (
+          <button
+            key={value}
+            type="button"
+            onClick={() => onSelect(value)}
+            className={`card ${toneClass} ${selectedValue === value ? "selected" : ""}`}
+          >
+            {value}
+          </button>
+        );
+      })}
     </div>
   );
 }

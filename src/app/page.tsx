@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DeckType } from "@/lib/types";
 import { LayoutShell } from "@/components/LayoutShell";
@@ -41,12 +42,13 @@ export default function Home() {
   return (
     <LayoutShell>
       <main className="panel landing-panel">
-        <h1 className="title">Agile Arcade</h1>
-        <p className="tagline">Where story points get extra lives</p>
+        <header className="app-header home-header">
+          <Image src="/logo_banner.webp" alt="Agile Arcade" className="banner-img" width={640} height={120} priority />
+        </header>
 
         <DeckSelector deckType={deckType} onChange={setDeckType} />
 
-        <button className="btn" onClick={onCreateGame} disabled={isCreating}>
+        <button className="button" onClick={onCreateGame} disabled={isCreating}>
           {isCreating ? "Creating..." : "Create Game"}
         </button>
 

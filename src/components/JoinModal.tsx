@@ -56,12 +56,12 @@ export function JoinModal({ isOpen, initialEmoji, onSubmit, onRandomizeEmoji }: 
         <label className="label">Avatar</label>
         <div className="row gap-sm align-center">
           <span className="emoji-preview">{emoji}</span>
-          <button className="btn" type="button" onClick={handleRandomize}>
+          <button className="button" type="button" onClick={handleRandomize}>
             Random Emoji
           </button>
         </div>
 
-        <button className="btn" type="submit">
+        <button className="button" type="submit">
           Enter Room
         </button>
       </form>

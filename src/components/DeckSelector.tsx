@@ -11,14 +11,14 @@ export function DeckSelector({ deckType, onChange }: Props) {
       <p className="label">Deck</p>
       <div className="row gap-sm">
         <button
-          className={`btn ${deckType === "fibonacci" ? "btn-selected" : ""}`}
+          className={`button ${deckType === "fibonacci" ? "selected" : ""}`}
           onClick={() => onChange("fibonacci")}
           type="button"
         >
           Fibonacci
         </button>
         <button
-          className={`btn ${deckType === "tshirt" ? "btn-selected" : ""}`}
+          className={`button ${deckType === "tshirt" ? "selected" : ""}`}
           onClick={() => onChange("tshirt")}
           type="button"
         >
