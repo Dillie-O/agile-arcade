@@ -616,6 +616,23 @@ p {
   padding: 0.65rem 0.75rem;
 }
 
+.ngrok-panel {
+  padding: 0.65rem 0.75rem;
+}
+
+.ngrok-token-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.ngrok-url-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;

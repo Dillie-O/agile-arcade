@@ -10,6 +10,7 @@ import { JoinModal } from "@/components/JoinModal";
 import { LayoutShell } from "@/components/LayoutShell";
 import { ParticipantList } from "@/components/ParticipantList";
 import { ResultsSummary } from "@/components/ResultsSummary";
+import { NgrokPanel } from "@/components/NgrokPanel";
 import { StatusBar } from "@/components/StatusBar";
 import { randomEmoji } from "@/lib/constants";
 import { Identity, Room } from "@/lib/types";
@@ -31,6 +32,7 @@ export function GameRoom({ roomId }: Props) {
   const [roomNotFound, setRoomNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingVote, setPendingVote] = useState<string | null>(null);
+  const [tunnelUrl, setTunnelUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const raw = localStorage.getItem(getIdentityKey(roomId));
@@ -56,7 +58,7 @@ export function GameRoom({ roomId }: Props) {
       return;
     }
 
-    const socket = io({ transports: ["websocket"] });
+    const socket = io({ transports: ["websocket", "polling"] });
     socketRef.current = socket;
 
     const emitJoin = () => {
@@ -142,6 +144,11 @@ export function GameRoom({ roomId }: Props) {
     socketRef.current?.emit("update_story", { roomId, story });
   };
 
+  const handleStopTunnel = async () => {
+    await fetch("/api/stop-tunnel", { method: "POST" });
+    setTunnelUrl(null);
+  };
+
   if (roomNotFound) {
     return (
       <LayoutShell>
@@ -172,7 +179,9 @@ export function GameRoom({ roomId }: Props) {
           <Image src="/logo_banner.webp" alt="Agile Arcade" className="banner-img" width={640} height={120} priority />
         </header>
 
-        <StatusBar roomId={roomId} isConnected={isConnected} />
+        <StatusBar roomId={roomId} isConnected={isConnected} tunnelUrl={tunnelUrl} onStopTunnel={isHost ? handleStopTunnel : undefined} />
+
+        {isHost ? <NgrokPanel tunnelActive={!!tunnelUrl} onTunnelChange={setTunnelUrl} /> : null}
 
         <section className="game-grid">
           <section className="panel participants-panel">

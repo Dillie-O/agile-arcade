@@ -1,6 +1,7 @@
 const http = require("http");
 const next = require("next");
 const { Server } = require("socket.io");
+const ngrok = require("@ngrok/ngrok");
 const {
   createRoom,
   getRoom,
@@ -22,44 +23,113 @@ const dev = process.env.NODE_ENV !== "production";
 const hostname = "0.0.0.0";
 const port = Number(process.env.PORT || 3000);
 
+let activeTunnel = null;
+
 const app = next({ dev, hostname, port });
 const nextHandler = app.getRequestHandler();
+
+const readBody = (req, maxBytes = 1024) =>
+  new Promise((resolve, reject) => {
+    let raw = "";
+    req.on("data", (chunk) => {
+      raw += chunk;
+      if (raw.length > maxBytes) {
+        req.destroy();
+        reject(new Error("Payload too large"));
+      }
+    });
+    req.on("end", () => resolve(raw));
+    req.on("error", reject);
+  });
 
 app.prepare().then(() => {
   const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && req.url === "/api/create-room") {
-      let raw = "";
-      let tooLarge = false;
+      let raw;
+      try {
+        raw = await readBody(req);
+      } catch {
+        res.statusCode = 413;
+        res.end("Payload too large");
+        return;
+      }
 
-      req.on("data", (chunk) => {
-        raw += chunk;
-        if (raw.length > 1024) {
-          tooLarge = true;
-          res.statusCode = 413;
-          res.end("Payload too large");
-          req.destroy();
+      let deckType = "fibonacci";
+      try {
+        const body = JSON.parse(raw || "{}");
+        if (body.deckType === "fibonacci" || body.deckType === "tshirt") {
+          deckType = body.deckType;
         }
-      });
+      } catch {
+        deckType = "fibonacci";
+      }
 
-      req.on("end", () => {
-        if (tooLarge) return;
-        let deckType = "fibonacci";
+      const room = createRoom(deckType);
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({ roomId: room.id }));
+      return;
+    }
 
-        try {
-          const body = JSON.parse(raw || "{}");
-          if (body.deckType === "fibonacci" || body.deckType === "tshirt") {
-            deckType = body.deckType;
-          }
-        } catch {
-          deckType = "fibonacci";
+    if (req.method === "POST" && req.url === "/api/start-tunnel") {
+      let raw;
+      try {
+        raw = await readBody(req);
+      } catch {
+        res.statusCode = 413;
+        res.end("Payload too large");
+        return;
+      }
+
+      let authtoken;
+      try {
+        ({ authtoken } = JSON.parse(raw || "{}"));
+      } catch {
+        res.statusCode = 400;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ error: "Invalid JSON" }));
+        return;
+      }
+
+      if (!authtoken || typeof authtoken !== "string" || authtoken.length > 512) {
+        res.statusCode = 400;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ error: "authtoken is required" }));
+        return;
+      }
+
+      try {
+        if (activeTunnel) {
+          await activeTunnel.close();
+          activeTunnel = null;
         }
-
-        const room = createRoom(deckType);
+        activeTunnel = await ngrok.forward({ addr: port, authtoken });
+        const url = activeTunnel.url();
         res.statusCode = 200;
         res.setHeader("Content-Type", "application/json");
-        res.end(JSON.stringify({ roomId: room.id }));
-      });
+        res.end(JSON.stringify({ url }));
+      } catch (err) {
+        res.statusCode = 502;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ error: err.message || "Failed to start tunnel" }));
+      }
+      return;
+    }
 
+    if (req.method === "POST" && req.url === "/api/stop-tunnel") {
+      try {
+        if (activeTunnel) {
+          await activeTunnel.close();
+          activeTunnel = null;
+        }
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ ok: true }));
+      } catch (err) {
+        res.statusCode = 500;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ error: err.message || "Failed to stop tunnel" }));
+      }
       return;
     }
 

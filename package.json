@@ -10,6 +10,7 @@
     "test:smoke": "node scripts/smoke-realtime.js"
   },
   "dependencies": {
+    "@ngrok/ngrok": "^1.7.0",
     "next": "16.2.2",
     "react": "19.2.4",
     "react-dom": "19.2.4",
