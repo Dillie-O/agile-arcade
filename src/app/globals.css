@@ -524,6 +524,10 @@ p {
   background: linear-gradient(180deg, #42ba71 0%, #21884d 100%);
 }
 
+.card-brown {
+  background: linear-gradient(180deg, #a0856a 0%, #6e4e36 100%);
+}
+
 .result-summary {
   display: flex;
   flex-direction: column;
