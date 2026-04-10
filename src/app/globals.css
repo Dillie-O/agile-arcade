@@ -445,6 +445,13 @@ p {
   font-family: inherit;
 }
 
+.story-char-count {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--fg-text-soft);
+  opacity: 0.7;
+}
+
 .story-input,
 .terminal-input {
   width: 100%;
@@ -618,6 +625,25 @@ p {
 
 .ngrok-panel {
   padding: 0.65rem 0.75rem;
+}
+
+.host-notice {
+  background: rgba(92, 59, 30, 0.12);
+  border: 1px solid rgba(92, 59, 30, 0.3);
+  border-radius: 6px;
+  color: var(--fg-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.5rem 0.85rem;
+  text-align: center;
+  animation: fadeInOut 5s ease forwards;
+}
+
+@keyframes fadeInOut {
+  0%   { opacity: 0; transform: translateY(-4px); }
+  10%  { opacity: 1; transform: translateY(0); }
+  75%  { opacity: 1; }
+  100% { opacity: 0; }
 }
 
 .ngrok-token-input {

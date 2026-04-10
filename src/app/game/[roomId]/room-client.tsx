@@ -33,6 +33,8 @@ export function GameRoom({ roomId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [pendingVote, setPendingVote] = useState<string | null>(null);
   const [tunnelUrl, setTunnelUrl] = useState<string | null>(null);
+  const [newHostNotice, setNewHostNotice] = useState(false);
+  const prevIsHostRef = useRef(false);
 
   useEffect(() => {
     const raw = localStorage.getItem(getIdentityKey(roomId));
@@ -120,6 +122,17 @@ export function GameRoom({ roomId }: Props) {
     return room.participants.find((item) => item.id === myId) ?? null;
   }, [room, myId]);
 
+  // Detect host promotion transition and show brief notice
+  useEffect(() => {
+    const isHostNow = me?.isHost ?? false;
+    if (isHostNow && !prevIsHostRef.current) {
+      setNewHostNotice(true);
+      const t = setTimeout(() => setNewHostNotice(false), 5000);
+      return () => clearTimeout(t);
+    }
+    prevIsHostRef.current = isHostNow;
+  }, [me?.isHost]);
+
   const onJoin = (nextIdentity: Identity) => {
     const identityWithId = { ...nextIdentity, participantId: crypto.randomUUID() };
     localStorage.setItem(getIdentityKey(roomId), JSON.stringify(identityWithId));
@@ -181,6 +194,12 @@ export function GameRoom({ roomId }: Props) {
 
         <StatusBar roomId={roomId} isConnected={isConnected} tunnelUrl={tunnelUrl} onStopTunnel={isHost ? handleStopTunnel : undefined} />
 
+        {newHostNotice ? (
+          <div className="host-notice" role="status">
+            You are now the host
+          </div>
+        ) : null}
+
         {isHost ? <NgrokPanel tunnelActive={!!tunnelUrl} onTunnelChange={setTunnelUrl} /> : null}
 
         <section className="game-grid">
@@ -197,15 +216,19 @@ export function GameRoom({ roomId }: Props) {
             <div className="story-row">
               <span className="label">Story:</span>
               {isHost ? (
-                <input
-                  id="story-input"
-                  type="text"
-                  className="terminal-input story-input"
-                  value={room?.story ?? ""}
-                  onChange={(event) => onUpdateStory(event.target.value)}
-                  placeholder="Enter story or URL..."
-                  disabled={Boolean(room?.revealed)}
-                />
+                <>
+                  <input
+                    id="story-input"
+                    type="text"
+                    className="terminal-input story-input"
+                    value={room?.story ?? ""}
+                    onChange={(event) => onUpdateStory(event.target.value)}
+                    placeholder="Enter story or URL..."
+                    maxLength={140}
+                    disabled={Boolean(room?.revealed)}
+                  />
+                  <span className="story-char-count">{(room?.story ?? "").length}/140</span>
+                </>
               ) : (
                 <span className="story-display">{room?.story || "No story set"}</span>
               )}

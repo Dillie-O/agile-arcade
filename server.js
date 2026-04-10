@@ -23,6 +23,13 @@ const dev = process.env.NODE_ENV !== "production";
 const hostname = "0.0.0.0";
 const port = Number(process.env.PORT || 3000);
 
+// Maps participantId -> socketId to prevent impersonation
+const activeParticipants = new Map();
+
+// Rate-limit state for tunnel creation
+let lastTunnelAttemptAt = 0;
+const TUNNEL_RATE_LIMIT_MS = 5000;
+
 let activeTunnel = null;
 
 const app = next({ dev, hostname, port });
@@ -98,6 +105,15 @@ app.prepare().then(() => {
         return;
       }
 
+      const now = Date.now();
+      if (now - lastTunnelAttemptAt < TUNNEL_RATE_LIMIT_MS) {
+        res.statusCode = 429;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ error: "Too many requests, please wait a moment" }));
+        return;
+      }
+      lastTunnelAttemptAt = now;
+
       try {
         if (activeTunnel) {
           await activeTunnel.close();
@@ -158,7 +174,17 @@ app.prepare().then(() => {
       const roomId = String(payload.roomId || "").toUpperCase();
       const name = String(payload.name || "").trim();
       const emoji = String(payload.emoji || "🎮").trim() || "🎮";
-      const participantId = String(payload.participantId || socket.id).trim() || socket.id;
+      const clientId = String(payload.participantId || "").trim();
+
+      // If the requested ID is already owned by a different active socket, don't
+      // allow impersonation — fall back to socket.id for this connection.
+      let participantId;
+      if (clientId && activeParticipants.has(clientId) && activeParticipants.get(clientId) !== socket.id) {
+        participantId = socket.id;
+      } else {
+        participantId = clientId || socket.id;
+      }
+      activeParticipants.set(participantId, socket.id);
 
       if (!roomId || !name) {
         socket.emit("error", "Invalid room or name");
@@ -342,6 +368,8 @@ app.prepare().then(() => {
       const roomId = socket.data.roomId;
       const participantId = socket.data.participantId || socket.id;
 
+      activeParticipants.delete(participantId);
+
       if (!roomId || !participantId) {
         return;
       }
@@ -357,4 +385,7 @@ app.prepare().then(() => {
   server.listen(port, hostname, () => {
     console.log(`> Agile Arcade running at http://${hostname}:${port}`);
   });
+}).catch((err) => {
+  console.error("Failed to start server:", err);
+  process.exit(1);
 });
