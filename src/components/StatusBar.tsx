@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Props = {
   roomId: string;
@@ -9,6 +9,7 @@ type Props = {
 
 export function StatusBar({ roomId, isConnected }: Props) {
   const [copied, setCopied] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [shareMeta, setShareMeta] = useState<{ display: string; copyValue: string } | null>(null);
 
   useEffect(() => {
@@ -18,11 +19,18 @@ export function StatusBar({ roomId, isConnected }: Props) {
     });
   }, [roomId]);
 
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    };
+  }, []);
+
   const onCopy = async () => {
     if (!shareMeta) return;
     await navigator.clipboard.writeText(shareMeta.copyValue);
     setCopied(true);
-    setTimeout(() => setCopied(false), 1200);
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    copiedTimerRef.current = setTimeout(() => setCopied(false), 1200);
   };
 
   return (

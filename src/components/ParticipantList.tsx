@@ -9,7 +9,7 @@ type Props = {
 export function ParticipantList({ participants, revealed, myId }: Props) {
   return (
     <ul className="participant-list">
-      {participants.slice(0, 8).map((participant) => {
+      {participants.map((participant) => {
         const isMe = participant.id === myId;
         const stateLabel = participant.hasVoted || participant.vote ? "Ready!" : "Waiting...";
         const displayStatus = revealed && participant.vote ? `${stateLabel} ${participant.vote}` : stateLabel;

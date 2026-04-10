@@ -29,12 +29,20 @@ app.prepare().then(() => {
   const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && req.url === "/api/create-room") {
       let raw = "";
+      let tooLarge = false;
 
       req.on("data", (chunk) => {
         raw += chunk;
+        if (raw.length > 1024) {
+          tooLarge = true;
+          res.statusCode = 413;
+          res.end("Payload too large");
+          req.destroy();
+        }
       });
 
       req.on("end", () => {
+        if (tooLarge) return;
         let deckType = "fibonacci";
 
         try {

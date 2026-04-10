@@ -105,6 +105,7 @@ export function GameRoom({ roomId }: Props) {
     return () => {
       socket.disconnect();
       socketRef.current = null;
+      myIdRef.current = null;
       setMyId(null);
     };
   }, [identity, roomId]);
