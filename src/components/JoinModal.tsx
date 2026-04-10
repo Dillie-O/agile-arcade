@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { Identity } from "@/lib/types";
 
 type Props = {
@@ -11,11 +11,7 @@ type Props = {
 
 export function JoinModal({ isOpen, onSubmit, onRandomizeEmoji }: Props) {
   const [name, setName] = useState("");
-  const [emoji, setEmoji] = useState("");
-
-  useEffect(() => {
-    setEmoji(onRandomizeEmoji());
-  }, []);
+  const [emoji, setEmoji] = useState(() => onRandomizeEmoji());
 
   if (!isOpen) {
     return null;

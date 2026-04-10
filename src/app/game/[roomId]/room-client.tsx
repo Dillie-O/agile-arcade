@@ -24,6 +24,7 @@ const getIdentityKey = (roomId: string) => `agile-arcade:${roomId}:identity`;
 export function GameRoom({ roomId }: Props) {
   const socketRef = useRef<Socket | null>(null);
   const myIdRef = useRef<string | null>(null);
+  const hostNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [identityLoaded, setIdentityLoaded] = useState(false);
@@ -46,6 +47,7 @@ export function GameRoom({ roomId }: Props) {
             parsed.participantId = crypto.randomUUID();
             localStorage.setItem(getIdentityKey(roomId), JSON.stringify(parsed));
           }
+          // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: syncing state from localStorage (external system)
           setIdentity(parsed);
         }
       } catch {
@@ -92,6 +94,14 @@ export function GameRoom({ roomId }: Props) {
       if (myParticipant && !myParticipant.hasVoted) {
         setPendingVote(null);
       }
+      // Detect host promotion and show brief notice
+      const isHostNow = myParticipant?.isHost ?? false;
+      if (isHostNow && !prevIsHostRef.current) {
+        setNewHostNotice(true);
+        if (hostNoticeTimerRef.current) clearTimeout(hostNoticeTimerRef.current);
+        hostNoticeTimerRef.current = setTimeout(() => setNewHostNotice(false), 5000);
+      }
+      prevIsHostRef.current = isHostNow;
     });
 
     socket.on("room_not_found", () => {
@@ -111,6 +121,7 @@ export function GameRoom({ roomId }: Props) {
       socketRef.current = null;
       myIdRef.current = null;
       setMyId(null);
+      if (hostNoticeTimerRef.current) clearTimeout(hostNoticeTimerRef.current);
     };
   }, [identity, roomId]);
 
@@ -121,17 +132,6 @@ export function GameRoom({ roomId }: Props) {
 
     return room.participants.find((item) => item.id === myId) ?? null;
   }, [room, myId]);
-
-  // Detect host promotion transition and show brief notice
-  useEffect(() => {
-    const isHostNow = me?.isHost ?? false;
-    if (isHostNow && !prevIsHostRef.current) {
-      setNewHostNotice(true);
-      const t = setTimeout(() => setNewHostNotice(false), 5000);
-      return () => clearTimeout(t);
-    }
-    prevIsHostRef.current = isHostNow;
-  }, [me?.isHost]);
 
   const onJoin = (nextIdentity: Identity) => {
     const identityWithId = { ...nextIdentity, participantId: crypto.randomUUID() };
