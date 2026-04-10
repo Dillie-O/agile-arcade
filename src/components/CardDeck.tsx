@@ -8,10 +8,15 @@ type Props = {
 };
 
 export function CardDeck({ deckType, selectedValue, onSelect }: Props) {
+  const NEUTRAL = new Set(["☕", "?"]);
+  const GREEN   = new Set(["1", "2", "3", "5", "XS", "S", "M"]);
+
   return (
     <div className={`card-grid${selectedValue ? " has-voted" : ""}`}>
       {DECKS[deckType].map((value) => {
-        const toneClass = ["1", "2", "3", "5"].includes(value) ? "card-red" : "card-green";
+        let toneClass = "card-red";
+        if (NEUTRAL.has(value)) toneClass = "card-brown";
+        else if (GREEN.has(value)) toneClass = "card-green";
 
         return (
           <button
