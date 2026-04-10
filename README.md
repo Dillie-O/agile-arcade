@@ -1,4 +1,8 @@
 <p align="center">
+  <img src="public/logo_banner.webp" alt="Agile Arcade" width="480" />
+</p>
+
+<p align="center">
   Real-time planning poker for remote agile teams — no accounts, no friction.
 </p>
 
