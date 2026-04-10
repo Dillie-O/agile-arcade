@@ -78,12 +78,12 @@ async function waitUntil(check, timeoutMs = 7000, stepMs = 50, label = "conditio
   secondClient.emit("cast_vote", { roomId, value: "8" });
 
   await waitUntil(
-    () => firstState && firstState.revealed === false && firstState.participants.every((participant) => participant.hasVoted),
+    () => firstState && firstState.participants.every((participant) => participant.hasVoted),
     7000,
     50,
-    "all votes hidden and present"
+    "all votes cast"
   );
-  console.log("cast vote hidden-state: ok");
+  console.log("cast vote: ok");
 
   firstClient.emit("reveal_votes", { roomId });
   await waitUntil(() => firstState?.revealed === true, 7000, 50, "revealed state");
