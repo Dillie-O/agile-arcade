@@ -9,3 +9,7 @@ pnpm-debug.log*
 .vscode
 .env*
 coverage
+.github
+README.md
+AGENTS.md
+CLAUDE.md
