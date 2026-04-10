@@ -22,6 +22,7 @@ const getIdentityKey = (roomId: string) => `agile-arcade:${roomId}:identity`;
 
 export function GameRoom({ roomId }: Props) {
   const socketRef = useRef<Socket | null>(null);
+  const myIdRef = useRef<string | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [identityLoaded, setIdentityLoaded] = useState(false);
@@ -29,6 +30,7 @@ export function GameRoom({ roomId }: Props) {
   const [isConnected, setIsConnected] = useState(false);
   const [roomNotFound, setRoomNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingVote, setPendingVote] = useState<string | null>(null);
 
   useEffect(() => {
     const raw = localStorage.getItem(getIdentityKey(roomId));
@@ -68,7 +70,9 @@ export function GameRoom({ roomId }: Props) {
 
     socket.on("connect", () => {
       setIsConnected(true);
-      setMyId(identity.participantId ?? socket.id ?? null);
+      const id = identity.participantId ?? socket.id ?? null;
+      myIdRef.current = id;
+      setMyId(id);
       emitJoin();
     });
 
@@ -80,6 +84,10 @@ export function GameRoom({ roomId }: Props) {
       setRoom(incoming);
       setRoomNotFound(false);
       setError(null);
+      const myParticipant = incoming.participants.find((p) => p.id === myIdRef.current);
+      if (myParticipant && !myParticipant.hasVoted) {
+        setPendingVote(null);
+      }
     });
 
     socket.on("room_not_found", () => {
@@ -116,6 +124,7 @@ export function GameRoom({ roomId }: Props) {
   };
 
   const onCastVote = (value: string) => {
+    setPendingVote(value);
     socketRef.current?.emit("cast_vote", { roomId, value });
   };
 
@@ -124,6 +133,7 @@ export function GameRoom({ roomId }: Props) {
   };
 
   const onResetRound = () => {
+    setPendingVote(null);
     socketRef.current?.emit("reset_round", { roomId });
   };
 
@@ -145,7 +155,7 @@ export function GameRoom({ roomId }: Props) {
     );
   }
 
-  const selectedVote = me?.vote;
+  const selectedVote = pendingVote ?? me?.vote;
   const isHost = Boolean(me?.isHost);
 
   return (
