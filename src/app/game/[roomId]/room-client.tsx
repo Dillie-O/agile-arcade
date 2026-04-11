@@ -25,7 +25,9 @@ export function GameRoom({ roomId }: Props) {
   const socketRef = useRef<Socket | null>(null);
   const myIdRef = useRef<string | null>(null);
   const hostNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const storyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
+  const [storyDraft, setStoryDraft] = useState<string | null>(null);
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [identityLoaded, setIdentityLoaded] = useState(false);
   const [myId, setMyId] = useState<string | null>(null);
@@ -88,6 +90,8 @@ export function GameRoom({ roomId }: Props) {
 
     socket.on("room_state", (incoming: Room) => {
       setRoom(incoming);
+      // Only sync story from server if the host isn't actively typing
+      setStoryDraft((prev) => (prev === null ? null : prev));
       setRoomNotFound(false);
       setError(null);
       const myParticipant = incoming.participants.find((p) => p.id === myIdRef.current);
@@ -122,6 +126,7 @@ export function GameRoom({ roomId }: Props) {
       myIdRef.current = null;
       setMyId(null);
       if (hostNoticeTimerRef.current) clearTimeout(hostNoticeTimerRef.current);
+      if (storyDebounceRef.current) clearTimeout(storyDebounceRef.current);
     };
   }, [identity, roomId]);
 
@@ -150,11 +155,17 @@ export function GameRoom({ roomId }: Props) {
 
   const onResetRound = () => {
     setPendingVote(null);
+    setStoryDraft(null);
     socketRef.current?.emit("reset_round", { roomId });
   };
 
   const onUpdateStory = (story: string) => {
-    socketRef.current?.emit("update_story", { roomId, story });
+    setStoryDraft(story);
+    if (storyDebounceRef.current) clearTimeout(storyDebounceRef.current);
+    storyDebounceRef.current = setTimeout(() => {
+      socketRef.current?.emit("update_story", { roomId, story });
+      storyDebounceRef.current = null;
+    }, 400);
   };
 
   const handleStopTunnel = async () => {
@@ -221,20 +232,20 @@ export function GameRoom({ roomId }: Props) {
                     id="story-input"
                     type="text"
                     className="terminal-input story-input"
-                    value={room?.story ?? ""}
+                    value={storyDraft ?? room?.story ?? ""}
                     onChange={(event) => onUpdateStory(event.target.value)}
                     placeholder="Enter story or URL..."
                     maxLength={140}
                     disabled={Boolean(room?.revealed)}
                   />
-                  <span className="story-char-count">{(room?.story ?? "").length}/140</span>
+                  <span className="story-char-count">{(storyDraft ?? room?.story ?? "").length}/140</span>
                 </>
               ) : (
                 <span className="story-display">{room?.story || "No story set"}</span>
               )}
-              {(room?.story ?? "").match(/^https?:\/\/\S+$/) ? (
+              {(storyDraft ?? room?.story ?? "").match(/^https?:\/\/\S+$/) ? (
                 <a
-                  href={room?.story}
+                  href={storyDraft ?? room?.story}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="button story-link-btn"
