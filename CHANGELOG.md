@@ -19,6 +19,9 @@ Support to host games through ngrok.
 ### Added
 Included changelog and version details.
 
+### Changed
+Readme updates.
+
 ### Fixed
 Fixed performance/stutter when host was typing in story text.
 

@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  Real-time planning poker for remote agile teams — no accounts, no friction.
+  Real-time story pointing game for teams — no accounts, no friction, more fun.
 </p>
 
 <p align="center">
@@ -16,7 +16,8 @@
 </p>
 
 <p align="center">
-  <a href="https://agile-arcade.onrender.com/" target="_blank">Demo Site</a> (Patience, it may take a moment to come online... 🤓)
+  <a href="CHANGELOG.md">Change Log</a> | <a href="https://agile-arcade.onrender.com/" target="_blank">Demo Site</a>
+  <br/>(Patience, it may take a moment to come online... 🤓)
 </p>
 
 ---
@@ -66,8 +67,8 @@ The app ships as a single Docker image and works with any container hosting plat
 
 | Platform | How to deploy |
 |---|---|
+| **Render** | New Web Service → Docker → point to your repo |
 | **Railway** | Connect GitHub repo → Railway auto-detects the `Dockerfile` |
-| **Render** | New Web Service → Docker → point to your fork |
 | **Fly.io** | `fly launch` in the project root, then `fly deploy` |
 | **VPS / self-hosted** | `docker compose up -d` |
 
