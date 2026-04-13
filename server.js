@@ -153,6 +153,7 @@ app.prepare().then(() => {
   });
 
   const io = new Server(server, {
+    transports: ["websocket"],
     cors: {
       origin: "*",
     },
