@@ -64,7 +64,7 @@ export function GameRoom({ roomId }: Props) {
       return;
     }
 
-    const socket = io({ transports: ["websocket"] });
+    const socket = io();
     socketRef.current = socket;
 
     const emitJoin = () => {
