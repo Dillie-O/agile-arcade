@@ -140,7 +140,7 @@ Built on **Next.js 16** (App Router) with a custom Node.js server (`server.js`) 
 - **Single instance only** — room state is not replicated; horizontal scaling requires adding a shared state layer (e.g. Redis + socket.io-redis-adapter).
 - **No authentication** — participants are identified by name + emoji only. There is no account system.
 - **No vote history** — results are not persisted; they are lost when the round resets or the room expires.
-- **2-hour TTL** — rooms inactive for more than 2 hours are automatically deleted.
+- **10-minute TTL** — rooms inactive for more than 10 minutes are automatically deleted.
 
 ---
 

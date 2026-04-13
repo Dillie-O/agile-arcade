@@ -30,6 +30,13 @@ Updated NextJS version.
 
 ---
 
+## [1.1.2] - 2026-04-13
+
+### Fixed
+Extended room inactivity timeout from 2 minutes to 10 minutes so teams have more time to discuss issues without the session expiring.
+
+---
+
 ## [x.y.z] - YYYY-MM-DD
 
 ### Added
