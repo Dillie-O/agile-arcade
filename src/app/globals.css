@@ -653,14 +653,6 @@ p {
   white-space: nowrap;
 }
 
-.timer-countdown-host {
-  font-family: var(--font-heading);
-  font-size: 1.1rem;
-  color: var(--accent-red);
-  min-width: 2.5rem;
-  text-align: center;
-}
-
 .timer-banner {
   background: linear-gradient(180deg, #c0392b 0%, #922b21 100%);
   border: 2px solid #7b241c;

@@ -249,7 +249,7 @@ export function GameRoom({ roomId }: Props) {
 
         {isHost ? <NgrokPanel tunnelActive={!!tunnelUrl} onTunnelChange={setTunnelUrl} /> : null}
 
-        {!isHost && timerDisplay !== null ? (
+        {timerDisplay !== null ? (
           <div className="timer-banner" role="status" aria-live="polite">
             ⏱ {timerDisplay}s
           </div>
