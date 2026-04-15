@@ -636,6 +636,43 @@ p {
   padding: 0.65rem 0.75rem;
 }
 
+.timer-control-group {
+  flex-wrap: nowrap;
+}
+
+.timer-select {
+  width: auto;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.button-timer {
+  background: linear-gradient(180deg, #7bc87e 0%, #3a9940 100%);
+  border-color: #1f6b24;
+  color: #fffaf0;
+  white-space: nowrap;
+}
+
+.timer-countdown-host {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  color: var(--accent-red);
+  min-width: 2.5rem;
+  text-align: center;
+}
+
+.timer-banner {
+  background: linear-gradient(180deg, #c0392b 0%, #922b21 100%);
+  border: 2px solid #7b241c;
+  border-radius: 6px;
+  color: #fffaf0;
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  padding: 0.5rem 1rem;
+  text-align: center;
+  box-shadow: var(--shadow-panel);
+}
+
 .ngrok-panel {
   padding: 0.65rem 0.75rem;
 }

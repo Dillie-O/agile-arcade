@@ -26,6 +26,7 @@ export function GameRoom({ roomId }: Props) {
   const myIdRef = useRef<string | null>(null);
   const hostNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const storyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
   const [storyDraft, setStoryDraft] = useState<string | null>(null);
   const [identity, setIdentity] = useState<Identity | null>(null);
@@ -37,6 +38,7 @@ export function GameRoom({ roomId }: Props) {
   const [pendingVote, setPendingVote] = useState<string | null>(null);
   const [tunnelUrl, setTunnelUrl] = useState<string | null>(null);
   const [newHostNotice, setNewHostNotice] = useState(false);
+  const [timerDisplay, setTimerDisplay] = useState<number | null>(null);
   const prevIsHostRef = useRef(false);
 
   useEffect(() => {
@@ -130,6 +132,36 @@ export function GameRoom({ roomId }: Props) {
     };
   }, [identity, roomId]);
 
+  useEffect(() => {
+    const timerEndsAt = room?.timerEndsAt ?? null;
+
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+
+    if (!timerEndsAt || room?.revealed) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: syncing timer display from server state
+      setTimerDisplay(null);
+      return;
+    }
+
+    const update = () => {
+      const remaining = Math.ceil((timerEndsAt - Date.now()) / 1000);
+      setTimerDisplay(remaining > 0 ? remaining : 0);
+    };
+
+    update();
+    timerIntervalRef.current = setInterval(update, 250);
+
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    };
+  }, [room?.timerEndsAt, room?.revealed]);
+
   const me = useMemo(() => {
     if (!room || !myId) {
       return null;
@@ -157,6 +189,10 @@ export function GameRoom({ roomId }: Props) {
     setPendingVote(null);
     setStoryDraft(null);
     socketRef.current?.emit("reset_round", { roomId });
+  };
+
+  const onStartTimer = (duration: number) => {
+    socketRef.current?.emit("start_timer", { roomId, duration });
   };
 
   const onUpdateStory = (story: string) => {
@@ -212,6 +248,12 @@ export function GameRoom({ roomId }: Props) {
         ) : null}
 
         {isHost ? <NgrokPanel tunnelActive={!!tunnelUrl} onTunnelChange={setTunnelUrl} /> : null}
+
+        {!isHost && timerDisplay !== null ? (
+          <div className="timer-banner" role="status" aria-live="polite">
+            ⏱ {timerDisplay}s
+          </div>
+        ) : null}
 
         <section className="game-grid">
           <section className="panel participants-panel">
@@ -273,8 +315,10 @@ export function GameRoom({ roomId }: Props) {
             <Controls
               isHost={isHost}
               revealed={Boolean(room?.revealed)}
+              timerEndsAt={room?.timerEndsAt ?? null}
               onReveal={onRevealVotes}
               onReset={onResetRound}
+              onStartTimer={onStartTimer}
             />
 
             {error ? <p className="error-text">{error}</p> : null}

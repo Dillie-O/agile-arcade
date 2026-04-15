@@ -15,6 +15,7 @@ export type Room = {
   participants: Participant[];
   story: string;
   revealed: boolean;
+  timerEndsAt: number | null;
   createdAt: number;
   lastActivityAt: number;
 };
