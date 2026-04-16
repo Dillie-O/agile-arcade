@@ -37,6 +37,13 @@ Host-controlled countdown timer with auto-reveal. Host can select a duration (5â
 
 ---
 
+## [1.2.1] - 2026-04-16
+
+### Security
+Fixed DOM-text-reinterpreted-as-HTML vulnerability (CodeQL alert #3) in `room-client.tsx`. Story URLs are now validated against an `http:`/`https:` allowlist via a `toSafeHttpUrl` helper before being bound to anchor `href` attributes, preventing tainted user input from reaching DOM sinks.
+
+---
+
 ## [x.y.z] - YYYY-MM-DD
 
 ### Added

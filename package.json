@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "NODE_ENV=production node server.js",
     "lint": "eslint",
-    "test:smoke": "node scripts/smoke-realtime.js"
+    "test:smoke": "node scripts/smoke-realtime.js",
+    "test:unit": "node --test scripts/test-unit.js"
   },
   "dependencies": {
     "@ngrok/ngrok": "^1.7.0",

@@ -21,6 +21,23 @@ type Props = {
 
 const getIdentityKey = (roomId: string) => `agile-arcade:${roomId}:identity`;
 
+const toSafeHttpUrl = (value: string | null | undefined): string | null => {
+  if (!value) return null;
+  if (!/^https?:\/\/\S+$/.test(value)) return null;
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      if (parsed.username || parsed.password) {
+        return null;
+      }
+      return parsed.toString();
+    }
+  } catch {
+    return null;
+  }
+  return null;
+};
+
 export function GameRoom({ roomId }: Props) {
   const socketRef = useRef<Socket | null>(null);
   const myIdRef = useRef<string | null>(null);
@@ -191,6 +208,8 @@ export function GameRoom({ roomId }: Props) {
     socketRef.current?.emit("reset_round", { roomId });
   };
 
+  const safeStoryUrl = toSafeHttpUrl(storyDraft ?? room?.story ?? "");
+
   const onStartTimer = (duration: number) => {
     socketRef.current?.emit("start_timer", { roomId, duration });
   };
@@ -285,9 +304,9 @@ export function GameRoom({ roomId }: Props) {
               ) : (
                 <span className="story-display">{room?.story || "No story set"}</span>
               )}
-              {(storyDraft ?? room?.story ?? "").match(/^https?:\/\/\S+$/) ? (
+              {safeStoryUrl ? (
                 <a
-                  href={storyDraft ?? room?.story}
+                  href={safeStoryUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="button story-link-btn"
