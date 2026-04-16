@@ -71,7 +71,7 @@ describe("createRoom", () => {
 describe("getRoom", () => {
   beforeEach(() => rooms.clear());
 
-  it("returns null for unknown ids", () => {
+  it("returns undefined for unknown ids", () => {
     assert.equal(getRoom("DOESNT"), undefined);
   });
 
@@ -187,8 +187,7 @@ describe("setParticipantProfile", () => {
   it("updates name and emoji", () => {
     const room = createRoom();
     addParticipant(room.id, { id: "p1", name: "Alice", emoji: "🎮" });
-    const { setParticipantProfile: spp } = require("../server/rooms");
-    spp(room.id, "p1", { name: "Alicia", emoji: "🦄" });
+    setParticipantProfile(room.id, "p1", { name: "Alicia", emoji: "🦄" });
     const p = getRoom(room.id).participants[0];
     assert.equal(p.name, "Alicia");
     assert.equal(p.emoji, "🦄");
@@ -197,8 +196,7 @@ describe("setParticipantProfile", () => {
   it("truncates name to 30 characters", () => {
     const room = createRoom();
     addParticipant(room.id, { id: "p1", name: "Alice", emoji: "🎮" });
-    const { setParticipantProfile: spp } = require("../server/rooms");
-    spp(room.id, "p1", { name: "A".repeat(50) });
+    setParticipantProfile(room.id, "p1", { name: "A".repeat(50) });
     const p = getRoom(room.id).participants[0];
     assert.equal(p.name.length, 30);
   });
