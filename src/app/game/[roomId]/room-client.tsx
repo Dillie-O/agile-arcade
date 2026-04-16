@@ -26,6 +26,9 @@ const toSafeHttpUrl = (value: string | null | undefined): string | null => {
   try {
     const parsed = new URL(value);
     if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      if (parsed.username || parsed.password) {
+        return null;
+      }
       return parsed.toString();
     }
   } catch {
