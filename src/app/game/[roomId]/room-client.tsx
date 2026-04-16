@@ -23,6 +23,7 @@ const getIdentityKey = (roomId: string) => `agile-arcade:${roomId}:identity`;
 
 const toSafeHttpUrl = (value: string | null | undefined): string | null => {
   if (!value) return null;
+  if (!/^https?:\/\/\S+$/.test(value)) return null;
   try {
     const parsed = new URL(value);
     if (parsed.protocol === "http:" || parsed.protocol === "https:") {
