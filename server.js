@@ -13,6 +13,7 @@ const {
   setParticipantEmoji,
   setParticipantProfile,
   setRoomStory,
+  setRoomTimer,
   revealVotes,
   resetRound,
   isValidVote,
@@ -25,6 +26,9 @@ const port = Number(process.env.PORT || 3000);
 
 // Maps participantId -> socketId to prevent impersonation
 const activeParticipants = new Map();
+
+// Maps roomId -> server-side timer handle for countdown
+const roomTimers = new Map();
 
 // Rate-limit state for tunnel creation
 let lastTunnelAttemptAt = 0;
@@ -322,6 +326,59 @@ app.prepare().then(() => {
       emitRoom(roomId);
     });
 
+    socket.on("start_timer", (payload = {}) => {
+      const roomId = String(payload.roomId || socket.data.roomId || "").toUpperCase();
+      const duration = Number(payload.duration);
+      const participantId = socket.data.participantId || socket.id;
+      const room = getRoom(roomId);
+
+      if (!room) {
+        socket.emit("room_not_found");
+        return;
+      }
+
+      const participant = room.participants.find((item) => item.id === participantId);
+      if (!participant || !participant.isHost) {
+        socket.emit("not_authorized");
+        return;
+      }
+
+      const validDurations = [5, 10, 15, 20, 25, 30];
+      if (!validDurations.includes(duration)) {
+        socket.emit("error", "Invalid timer duration");
+        return;
+      }
+
+      if (room.revealed) {
+        return;
+      }
+
+      // Cancel any existing timer for this room
+      if (roomTimers.has(roomId)) {
+        clearTimeout(roomTimers.get(roomId));
+        roomTimers.delete(roomId);
+      }
+
+      const endsAt = Date.now() + duration * 1000;
+      setRoomTimer(roomId, endsAt);
+      touchRoom(roomId);
+      emitRoom(roomId);
+
+      const handle = setTimeout(() => {
+        try {
+          const currentRoom = getRoom(roomId);
+          if (currentRoom && !currentRoom.revealed) {
+            revealVotes(roomId);
+            touchRoom(roomId);
+            emitRoom(roomId);
+          }
+        } finally {
+          roomTimers.delete(roomId);
+        }
+      }, duration * 1000);
+      roomTimers.set(roomId, handle);
+    });
+
     socket.on("reveal_votes", (payload = {}) => {
       const roomId = String(payload.roomId || socket.data.roomId || "").toUpperCase();
       const participantId = socket.data.participantId || socket.id;
@@ -336,6 +393,12 @@ app.prepare().then(() => {
       if (!participant || !participant.isHost) {
         socket.emit("not_authorized");
         return;
+      }
+
+      // Cancel any running timer for this room
+      if (roomTimers.has(roomId)) {
+        clearTimeout(roomTimers.get(roomId));
+        roomTimers.delete(roomId);
       }
 
       revealVotes(roomId);
@@ -357,6 +420,12 @@ app.prepare().then(() => {
       if (!participant || !participant.isHost) {
         socket.emit("not_authorized");
         return;
+      }
+
+      // Cancel any running timer for this room
+      if (roomTimers.has(roomId)) {
+        clearTimeout(roomTimers.get(roomId));
+        roomTimers.delete(roomId);
       }
 
       resetRound(roomId);

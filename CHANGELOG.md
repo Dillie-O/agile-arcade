@@ -30,6 +30,13 @@ Updated NextJS version.
 
 ---
 
+## [1.2.0] - 2026-04-15
+
+### Added
+Host-controlled countdown timer with auto-reveal. Host can select a duration (5–30 s), start the timer, and all participants see a live countdown banner. Cards auto-reveal when the timer expires.
+
+---
+
 ## [x.y.z] - YYYY-MM-DD
 
 ### Added

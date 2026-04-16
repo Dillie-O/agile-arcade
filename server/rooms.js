@@ -40,6 +40,7 @@ const createRoom = (deckType = "fibonacci") => {
     participants: [],
     story: "",
     revealed: false,
+    timerEndsAt: null,
     createdAt: now,
     lastActivityAt: now,
   };
@@ -170,6 +171,7 @@ const revealVotes = (roomId) => {
   }
 
   room.revealed = true;
+  room.timerEndsAt = null;
 };
 
 const resetRound = (roomId) => {
@@ -180,11 +182,21 @@ const resetRound = (roomId) => {
 
   room.revealed = false;
   room.story = "";
+  room.timerEndsAt = null;
   room.participants = room.participants.map((item) => ({
     ...item,
     vote: undefined,
     hasVoted: false,
   }));
+};
+
+const setRoomTimer = (roomId, endsAt) => {
+  const room = getRoom(roomId);
+  if (!room) {
+    return;
+  }
+
+  room.timerEndsAt = endsAt;
 };
 
 const roomToSnapshot = (room) => ({
@@ -200,6 +212,7 @@ const roomToSnapshot = (room) => ({
   })),
   story: room.story,
   revealed: room.revealed,
+  timerEndsAt: room.timerEndsAt,
   createdAt: room.createdAt,
   lastActivityAt: room.lastActivityAt,
 });
@@ -227,6 +240,7 @@ module.exports = {
   setParticipantEmoji,
   setParticipantProfile,
   setRoomStory,
+  setRoomTimer,
   revealVotes,
   resetRound,
   roomToSnapshot,
