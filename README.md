@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md">Change Log</a> | <a href="https://agile-arcade.onrender.com/" target="_blank">Demo Site</a>
+  <a href="CHANGELOG.md">Change Log</a> | <a href="https://agilearcade.dillieo.me/" target="_blank">Demo Site</a>
   <br/>(Patience, it may take a moment to come online... 🤓)
 </p>
 
