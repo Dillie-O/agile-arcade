@@ -1,6 +1,6 @@
 const ROOM_TTL_MS = 2 * 60 * 60 * 1000;
 const _graceMsParsed = parseInt(process.env.DISCONNECT_GRACE_MS, 10);
-const DISCONNECT_GRACE_MS = Number.isNaN(_graceMsParsed) ? 30 * 1000 : _graceMsParsed;
+const DISCONNECT_GRACE_MS = Number.isNaN(_graceMsParsed) ? 30 * 1000 : Math.max(0, _graceMsParsed);
 
 const rooms = new Map();
 
