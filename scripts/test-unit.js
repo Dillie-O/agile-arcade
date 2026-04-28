@@ -207,9 +207,9 @@ describe("evictStalledParticipants", () => {
     const room = createRoom();
     addParticipant(room.id, { id: "p1", name: "Alice", emoji: "🎮" });
     addParticipant(room.id, { id: "p2", name: "Bob", emoji: "🚀" });
-    // Backdate disconnectedAt so it looks expired
-    getRoom(room.id).participants[0].disconnectedAt = Date.now() - 60_000;
-    evictStalledParticipants(0);
+    markParticipantDisconnected(room.id, "p1");
+    // Simulate the grace period having elapsed by advancing the reference clock
+    evictStalledParticipants(0, Date.now() + 60_000);
     const updated = getRoom(room.id);
     assert.equal(updated.participants.length, 1);
     assert.equal(updated.participants[0].id, "p2");
@@ -219,8 +219,8 @@ describe("evictStalledParticipants", () => {
     const room = createRoom();
     addParticipant(room.id, { id: "p1", name: "Alice", emoji: "🎮" });
     addParticipant(room.id, { id: "p2", name: "Bob", emoji: "🚀" });
-    getRoom(room.id).participants[0].disconnectedAt = Date.now() - 60_000;
-    evictStalledParticipants(0);
+    markParticipantDisconnected(room.id, "p1");
+    evictStalledParticipants(0, Date.now() + 60_000);
     const updated = getRoom(room.id);
     assert.equal(updated.participants[0].isHost, true);
     assert.equal(updated.participants[0].id, "p2");
@@ -229,15 +229,15 @@ describe("evictStalledParticipants", () => {
   it("deletes the room when all participants are evicted", () => {
     const room = createRoom();
     addParticipant(room.id, { id: "p1", name: "Alice", emoji: "🎮" });
-    getRoom(room.id).participants[0].disconnectedAt = Date.now() - 60_000;
-    evictStalledParticipants(0);
+    markParticipantDisconnected(room.id, "p1");
+    evictStalledParticipants(0, Date.now() + 60_000);
     assert.equal(getRoom(room.id), undefined);
   });
 
   it("does not evict participants still within the grace period", () => {
     const room = createRoom();
     addParticipant(room.id, { id: "p1", name: "Alice", emoji: "🎮" });
-    getRoom(room.id).participants[0].disconnectedAt = Date.now(); // just disconnected
+    markParticipantDisconnected(room.id, "p1");
     evictStalledParticipants(30_000);
     assert.equal(getRoom(room.id).participants.length, 1);
   });
@@ -245,7 +245,7 @@ describe("evictStalledParticipants", () => {
   it("does not evict connected participants", () => {
     const room = createRoom();
     addParticipant(room.id, { id: "p1", name: "Alice", emoji: "🎮" });
-    evictStalledParticipants(0);
+    evictStalledParticipants(0, Date.now() + 60_000);
     assert.equal(getRoom(room.id).participants.length, 1);
   });
 });

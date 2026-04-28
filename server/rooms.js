@@ -1,5 +1,5 @@
 const ROOM_TTL_MS = 2 * 60 * 60 * 1000;
-const DISCONNECT_GRACE_MS = Number(process.env.DISCONNECT_GRACE_MS) || 30 * 1000;
+const DISCONNECT_GRACE_MS = parseInt(process.env.DISCONNECT_GRACE_MS, 10) || 30 * 1000;
 
 const rooms = new Map();
 
@@ -134,12 +134,10 @@ const reconnectParticipant = (roomId, participantId) => {
   participant.disconnectedAt = null;
 };
 
-const evictStalledParticipants = (graceMs = DISCONNECT_GRACE_MS) => {
-  const now = Date.now();
-
+const evictStalledParticipants = (graceMs = DISCONNECT_GRACE_MS, referenceNow = Date.now()) => {
   for (const room of [...rooms.values()]) {
     const staleIds = room.participants
-      .filter((p) => p.disconnectedAt !== null && now - p.disconnectedAt > graceMs)
+      .filter((p) => p.disconnectedAt !== null && referenceNow - p.disconnectedAt > graceMs)
       .map((p) => p.id);
 
     for (const id of staleIds) {
@@ -264,7 +262,7 @@ const roomToSnapshot = (room) => ({
 });
 
 const startCleanupJob = () => {
-  setInterval(() => {
+  const ttlInterval = setInterval(() => {
     const now = Date.now();
 
     for (const [roomId, room] of rooms.entries()) {
@@ -274,9 +272,11 @@ const startCleanupJob = () => {
     }
   }, 5 * 60 * 1000);
 
-  setInterval(() => {
+  const evictInterval = setInterval(() => {
     evictStalledParticipants();
   }, 10 * 1000);
+
+  return { ttlInterval, evictInterval };
 };
 
 module.exports = {
