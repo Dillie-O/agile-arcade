@@ -7,6 +7,9 @@ const {
   getRoom,
   addParticipant,
   removeParticipant,
+  markParticipantDisconnected,
+  reconnectParticipant,
+  evictStalledParticipants,
   setParticipantVote,
   setParticipantProfile,
   setRoomStory,
@@ -119,11 +122,131 @@ describe("removeParticipant", () => {
     assert.equal(updated.participants[0].id, "p2");
   });
 
+  it("prefers a connected participant for host promotion", () => {
+    const room = createRoom();
+    addParticipant(room.id, { id: "p1", name: "Alice", emoji: "🎮" });
+    addParticipant(room.id, { id: "p2", name: "Bob", emoji: "🚀" });
+    addParticipant(room.id, { id: "p3", name: "Carol", emoji: "🌸" });
+    // p2 is marked disconnected; p3 is connected — host should go to p3
+    markParticipantDisconnected(room.id, "p2");
+    removeParticipant(room.id, "p1");
+    const updated = getRoom(room.id);
+    const host = updated.participants.find((p) => p.isHost);
+    assert.equal(host.id, "p3");
+  });
+
   it("deletes the room when last participant leaves", () => {
     const room = createRoom();
     addParticipant(room.id, { id: "p1", name: "Alice", emoji: "🎮" });
     removeParticipant(room.id, "p1");
     assert.equal(getRoom(room.id), undefined);
+  });
+});
+
+describe("markParticipantDisconnected / reconnectParticipant", () => {
+  beforeEach(() => rooms.clear());
+
+  it("marks participant as disconnected", () => {
+    const room = createRoom();
+    addParticipant(room.id, { id: "p1", name: "Alice", emoji: "🎮" });
+    markParticipantDisconnected(room.id, "p1");
+    const p = getRoom(room.id).participants[0];
+    assert.ok(p.disconnectedAt !== null, "disconnectedAt should be set");
+    assert.ok(typeof p.disconnectedAt === "number", "disconnectedAt should be a number");
+  });
+
+  it("does not remove the participant or the room on disconnect", () => {
+    const room = createRoom();
+    addParticipant(room.id, { id: "p1", name: "Alice", emoji: "🎮" });
+    markParticipantDisconnected(room.id, "p1");
+    assert.ok(getRoom(room.id) !== undefined, "room should still exist");
+    assert.equal(getRoom(room.id).participants.length, 1);
+  });
+
+  it("preserves isHost on disconnect", () => {
+    const room = createRoom();
+    addParticipant(room.id, { id: "p1", name: "Alice", emoji: "🎮" });
+    markParticipantDisconnected(room.id, "p1");
+    const p = getRoom(room.id).participants[0];
+    assert.equal(p.isHost, true);
+  });
+
+  it("clears disconnectedAt on reconnect", () => {
+    const room = createRoom();
+    addParticipant(room.id, { id: "p1", name: "Alice", emoji: "🎮" });
+    markParticipantDisconnected(room.id, "p1");
+    reconnectParticipant(room.id, "p1");
+    const p = getRoom(room.id).participants[0];
+    assert.equal(p.disconnectedAt, null);
+  });
+
+  it("reconnected host retains isHost", () => {
+    const room = createRoom();
+    addParticipant(room.id, { id: "p1", name: "Alice", emoji: "🎮" });
+    addParticipant(room.id, { id: "p2", name: "Bob", emoji: "🚀" });
+    markParticipantDisconnected(room.id, "p1");
+    reconnectParticipant(room.id, "p1");
+    const p1 = getRoom(room.id).participants.find((p) => p.id === "p1");
+    assert.equal(p1.isHost, true);
+    assert.equal(p1.disconnectedAt, null);
+  });
+
+  it("is a no-op for an already-connected participant", () => {
+    const room = createRoom();
+    addParticipant(room.id, { id: "p1", name: "Alice", emoji: "🎮" });
+    reconnectParticipant(room.id, "p1");
+    const p = getRoom(room.id).participants[0];
+    assert.equal(p.disconnectedAt, null);
+  });
+});
+
+describe("evictStalledParticipants", () => {
+  beforeEach(() => rooms.clear());
+
+  it("removes participants whose grace period has expired", () => {
+    const room = createRoom();
+    addParticipant(room.id, { id: "p1", name: "Alice", emoji: "🎮" });
+    addParticipant(room.id, { id: "p2", name: "Bob", emoji: "🚀" });
+    // Backdate disconnectedAt so it looks expired
+    getRoom(room.id).participants[0].disconnectedAt = Date.now() - 60_000;
+    evictStalledParticipants(0);
+    const updated = getRoom(room.id);
+    assert.equal(updated.participants.length, 1);
+    assert.equal(updated.participants[0].id, "p2");
+  });
+
+  it("promotes the next connected participant to host after eviction", () => {
+    const room = createRoom();
+    addParticipant(room.id, { id: "p1", name: "Alice", emoji: "🎮" });
+    addParticipant(room.id, { id: "p2", name: "Bob", emoji: "🚀" });
+    getRoom(room.id).participants[0].disconnectedAt = Date.now() - 60_000;
+    evictStalledParticipants(0);
+    const updated = getRoom(room.id);
+    assert.equal(updated.participants[0].isHost, true);
+    assert.equal(updated.participants[0].id, "p2");
+  });
+
+  it("deletes the room when all participants are evicted", () => {
+    const room = createRoom();
+    addParticipant(room.id, { id: "p1", name: "Alice", emoji: "🎮" });
+    getRoom(room.id).participants[0].disconnectedAt = Date.now() - 60_000;
+    evictStalledParticipants(0);
+    assert.equal(getRoom(room.id), undefined);
+  });
+
+  it("does not evict participants still within the grace period", () => {
+    const room = createRoom();
+    addParticipant(room.id, { id: "p1", name: "Alice", emoji: "🎮" });
+    getRoom(room.id).participants[0].disconnectedAt = Date.now(); // just disconnected
+    evictStalledParticipants(30_000);
+    assert.equal(getRoom(room.id).participants.length, 1);
+  });
+
+  it("does not evict connected participants", () => {
+    const room = createRoom();
+    addParticipant(room.id, { id: "p1", name: "Alice", emoji: "🎮" });
+    evictStalledParticipants(0);
+    assert.equal(getRoom(room.id).participants.length, 1);
   });
 });
 
