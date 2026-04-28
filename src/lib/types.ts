@@ -7,7 +7,7 @@ export type Participant = {
   vote?: string;
   hasVoted: boolean;
   isHost: boolean;
-  isDisconnected?: boolean;
+  isDisconnected: boolean;
 };
 
 export type Room = {
