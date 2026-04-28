@@ -1,4 +1,5 @@
 const { io } = require("socket.io-client");
+const { randomUUID } = require("crypto");
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -58,8 +59,11 @@ async function waitUntil(check, timeoutMs = 7000, stepMs = 50, label = "conditio
     waitUntil(() => secondClient.connected, 7000, 50, "second socket connect"),
   ]);
 
-  firstClient.emit("join_room", { roomId, name: "HostUser", emoji: "🎮" });
-  secondClient.emit("join_room", { roomId, name: "PeerUser", emoji: "🚀" });
+  const hostParticipantId = randomUUID();
+  const peerParticipantId = randomUUID();
+
+  firstClient.emit("join_room", { roomId, name: "HostUser", emoji: "🎮", participantId: hostParticipantId });
+  secondClient.emit("join_room", { roomId, name: "PeerUser", emoji: "🚀", participantId: peerParticipantId });
 
   await waitUntil(() => firstState?.participants?.length === 2, 7000, 50, "both participants in first state");
   await waitUntil(() => secondState?.participants?.length === 2, 7000, 50, "both participants in second state");
@@ -112,18 +116,41 @@ async function waitUntil(check, timeoutMs = 7000, stepMs = 50, label = "conditio
 
   firstClient.disconnect();
 
+  // With the grace period the host remains in the participant list but is
+  // flagged as disconnected — no immediate host transfer should occur.
   await waitUntil(
-    () =>
-      secondState &&
-      secondState.participants.length === 1 &&
-      secondState.participants[0].name === "PeerUser" &&
-      secondState.participants[0].isHost,
+    () => {
+      const hostEntry = secondState?.participants?.find((p) => p.id === hostParticipantId);
+      return hostEntry?.isDisconnected === true && hostEntry?.isHost === true;
+    },
     7000,
     50,
-    "host transfer after disconnect"
+    "host marked disconnected but still host"
   );
-  console.log("host transfer on disconnect: ok");
+  console.log("grace period: host marked disconnected, host flag retained: ok");
 
+  // Reconnect the host with the same participantId — they should be restored.
+  const reconnectedClient = io(base, { transports: ["websocket"] });
+  let reconnectedState = null;
+  reconnectedClient.on("room_state", (state) => {
+    reconnectedState = state;
+  });
+
+  await waitUntil(() => reconnectedClient.connected, 7000, 50, "reconnected socket connect");
+  reconnectedClient.emit("join_room", { roomId, name: "HostUser", emoji: "🎮", participantId: hostParticipantId });
+
+  await waitUntil(
+    () => {
+      const hostEntry = reconnectedState?.participants?.find((p) => p.id === hostParticipantId);
+      return hostEntry?.isDisconnected === false && hostEntry?.isHost === true;
+    },
+    7000,
+    50,
+    "host restored after reconnect"
+  );
+  console.log("reconnect: host restored with isHost and isDisconnected cleared: ok");
+
+  reconnectedClient.disconnect();
   secondClient.disconnect();
   console.log("ALL INTERACTIVE CHECKS PASSED");
 })().catch((error) => {

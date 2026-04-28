@@ -1,4 +1,6 @@
 const ROOM_TTL_MS = 2 * 60 * 60 * 1000;
+const _graceMsParsed = parseInt(process.env.DISCONNECT_GRACE_MS, 10);
+const DISCONNECT_GRACE_MS = Number.isNaN(_graceMsParsed) ? 30 * 1000 : Math.max(0, _graceMsParsed);
 
 const rooms = new Map();
 
@@ -75,6 +77,7 @@ const addParticipant = (roomId, participant) => {
     vote: undefined,
     hasVoted: false,
     isHost: room.participants.length === 0,
+    disconnectedAt: null,
   };
 
   room.participants.push(entry);
@@ -92,7 +95,8 @@ const removeParticipant = (roomId, participantId) => {
   room.participants = room.participants.filter((item) => item.id !== participantId);
 
   if (removed?.isHost && room.participants.length > 0) {
-    room.participants[0].isHost = true;
+    const nextHost = room.participants.find((p) => p.disconnectedAt === null) ?? room.participants[0];
+    nextHost.isHost = true;
   }
 
   if (room.participants.length === 0) {
@@ -101,6 +105,46 @@ const removeParticipant = (roomId, participantId) => {
   }
 
   touchRoom(roomId);
+};
+
+const markParticipantDisconnected = (roomId, participantId) => {
+  const room = getRoom(roomId);
+  if (!room) {
+    return;
+  }
+
+  const participant = room.participants.find((item) => item.id === participantId);
+  if (!participant) {
+    return;
+  }
+
+  participant.disconnectedAt = Date.now();
+};
+
+const reconnectParticipant = (roomId, participantId) => {
+  const room = getRoom(roomId);
+  if (!room) {
+    return;
+  }
+
+  const participant = room.participants.find((item) => item.id === participantId);
+  if (!participant) {
+    return;
+  }
+
+  participant.disconnectedAt = null;
+};
+
+const evictStalledParticipants = (graceMs = DISCONNECT_GRACE_MS, referenceNow = Date.now()) => {
+  for (const room of [...rooms.values()]) {
+    const staleIds = room.participants
+      .filter((p) => p.disconnectedAt !== null && referenceNow - p.disconnectedAt > graceMs)
+      .map((p) => p.id);
+
+    for (const id of staleIds) {
+      removeParticipant(room.id, id);
+    }
+  }
 };
 
 const setParticipantVote = (roomId, participantId, value) => {
@@ -209,6 +253,7 @@ const roomToSnapshot = (room) => ({
     hasVoted: item.hasVoted,
     isHost: item.isHost,
     vote: room.revealed ? item.vote : undefined,
+    isDisconnected: item.disconnectedAt !== null,
   })),
   story: room.story,
   revealed: room.revealed,
@@ -218,7 +263,7 @@ const roomToSnapshot = (room) => ({
 });
 
 const startCleanupJob = () => {
-  setInterval(() => {
+  const ttlInterval = setInterval(() => {
     const now = Date.now();
 
     for (const [roomId, room] of rooms.entries()) {
@@ -227,6 +272,12 @@ const startCleanupJob = () => {
       }
     }
   }, 5 * 60 * 1000);
+
+  const evictInterval = setInterval(() => {
+    evictStalledParticipants();
+  }, 10 * 1000);
+
+  return { ttlInterval, evictInterval };
 };
 
 module.exports = {
@@ -236,6 +287,9 @@ module.exports = {
   touchRoom,
   addParticipant,
   removeParticipant,
+  markParticipantDisconnected,
+  reconnectParticipant,
+  evictStalledParticipants,
   setParticipantVote,
   setParticipantEmoji,
   setParticipantProfile,

@@ -9,6 +9,8 @@ const {
   touchRoom,
   addParticipant,
   removeParticipant,
+  markParticipantDisconnected,
+  reconnectParticipant,
   setParticipantVote,
   setParticipantEmoji,
   setParticipantProfile,
@@ -160,6 +162,8 @@ app.prepare().then(() => {
     cors: {
       origin: "*",
     },
+    pingInterval: 10000,
+    pingTimeout: 30000,
   });
 
   const emitRoom = (roomId) => {
@@ -209,6 +213,7 @@ app.prepare().then(() => {
       if (existing) {
         existing.name = name;
         existing.emoji = emoji;
+        reconnectParticipant(roomId, participantId);
       } else {
         addParticipant(roomId, { id: participantId, name, emoji });
       }
@@ -443,7 +448,7 @@ app.prepare().then(() => {
         return;
       }
 
-      removeParticipant(roomId, participantId);
+      markParticipantDisconnected(roomId, participantId);
       touchRoom(roomId);
       emitRoom(roomId);
     });
