@@ -40,6 +40,7 @@ async function waitUntil(check, timeoutMs = 7000, stepMs = 50, label = "conditio
   let secondState = null;
   let firstRoomNotFound = false;
   let secondRoomNotFound = false;
+  let secondRemovedFromRoom = false;
 
   firstClient.on("room_state", (state) => {
     firstState = state;
@@ -52,6 +53,9 @@ async function waitUntil(check, timeoutMs = 7000, stepMs = 50, label = "conditio
   });
   secondClient.on("room_not_found", () => {
     secondRoomNotFound = true;
+  });
+  secondClient.on("removed_from_room", () => {
+    secondRemovedFromRoom = true;
   });
 
   await Promise.all([
@@ -149,6 +153,19 @@ async function waitUntil(check, timeoutMs = 7000, stepMs = 50, label = "conditio
     "host restored after reconnect"
   );
   console.log("reconnect: host restored with isHost and isDisconnected cleared: ok");
+
+  reconnectedClient.emit("remove_participant", { roomId, participantId: peerParticipantId });
+  await waitUntil(() => secondRemovedFromRoom === true, 7000, 50, "peer removed notification");
+  await waitUntil(
+    () =>
+      reconnectedState &&
+      reconnectedState.participants.length === 1 &&
+      reconnectedState.participants[0]?.id === hostParticipantId,
+    7000,
+    50,
+    "peer removed from room state"
+  );
+  console.log("host remove participant: ok");
 
   reconnectedClient.disconnect();
   secondClient.disconnect();
