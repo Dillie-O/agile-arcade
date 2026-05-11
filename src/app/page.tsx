@@ -48,7 +48,7 @@ export default function Home() {
         <section className={`${styles.hero} panel nested-panel`}>
           <div className={styles.heroCopy}>
             <p className="tagline">Host a room and let the quest begin</p>
-            <h1 className={styles.title}>Choose your Adventure</h1>
+            <h1 className={styles.title}>Choose your Quest</h1>
             <p className={styles.subtitle}>Pick a deck and we&apos;ll create the game room right away.</p>
           </div>
 
