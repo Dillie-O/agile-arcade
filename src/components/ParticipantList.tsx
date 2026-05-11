@@ -13,7 +13,7 @@ export function ParticipantList({ participants, revealed, myId, isHost, onRemove
     <ul className="participant-list">
       {participants.map((participant) => {
         const isMe = participant.id === myId;
-        const canRemove = isHost && !isMe;
+        const canRemove = isHost && !isMe && Boolean(onRemoveParticipant);
         const stateLabel = participant.hasVoted || participant.vote ? "Ready!" : "Waiting...";
         const displayStatus = revealed && participant.vote ? `${stateLabel} ${participant.vote}` : stateLabel;
         const emojiClass = participant.isHost
