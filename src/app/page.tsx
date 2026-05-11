@@ -5,16 +5,15 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DeckType } from "@/lib/types";
 import { LayoutShell } from "@/components/LayoutShell";
-import { DeckSelector } from "@/components/DeckSelector";
+import styles from "./page.module.css";
 
 export default function Home() {
   const router = useRouter();
-  const [deckType, setDeckType] = useState<DeckType>("fibonacci");
-  const [isCreating, setIsCreating] = useState(false);
+  const [pendingDeck, setPendingDeck] = useState<DeckType | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const onCreateGame = async () => {
-    setIsCreating(true);
+  const onCreateGame = async (deckType: DeckType) => {
+    setPendingDeck(deckType);
     setError(null);
 
     try {
@@ -35,7 +34,7 @@ export default function Home() {
     } catch {
       setError("Unable to create game right now.");
     } finally {
-      setIsCreating(false);
+      setPendingDeck(null);
     }
   };
 
@@ -46,11 +45,49 @@ export default function Home() {
           <Image src="/logo_banner.webp" alt="Agile Arcade" className="banner-img" width={640} height={120} priority />
         </header>
 
-        <DeckSelector deckType={deckType} onChange={setDeckType} />
+        <section className={`${styles.hero} panel nested-panel`}>
+          <div className={styles.heroCopy}>
+            <p className="tagline">Host a room and let the quest begin</p>
+            <h1 className={styles.title}>Choose your Quest</h1>
+            <p className={styles.subtitle}>Pick a deck and we&apos;ll create the game room right away.</p>
+          </div>
 
-        <button className="button" onClick={onCreateGame} disabled={isCreating}>
-          {isCreating ? "Creating..." : "Create Game"}
-        </button>
+          <div className={styles.adventureGrid}>
+            <button
+              className={`button ${styles.adventureButton}`}
+              onClick={() => onCreateGame("fibonacci")}
+              disabled={pendingDeck !== null}
+              type="button"
+            >
+              <span className={styles.avatar} aria-hidden="true">
+                🧙
+              </span>
+              <span className={styles.adventureCopy}>
+                <span className={styles.adventureName}>Fibonacci</span>
+                <span className={styles.adventureHint}>
+                  {pendingDeck === "fibonacci" ? "Creating room..." : "Classic point-estimating quest"}
+                </span>
+              </span>
+            </button>
+
+            <button
+              className={`button ${styles.adventureButton}`}
+              onClick={() => onCreateGame("tshirt")}
+              disabled={pendingDeck !== null}
+              type="button"
+            >
+              <span className={styles.avatar} aria-hidden="true">
+                🧝
+              </span>
+              <span className={styles.adventureCopy}>
+                <span className={styles.adventureName}>T-Shirt</span>
+                <span className={styles.adventureHint}>
+                  {pendingDeck === "tshirt" ? "Creating room..." : "Size stories from XS to XXL"}
+                </span>
+              </span>
+            </button>
+          </div>
+        </section>
 
         {error ? <p className="error-text">{error}</p> : null}
       </main>
