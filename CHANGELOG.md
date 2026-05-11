@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.4] - 2026-05-11
+
+### Changed
+Refreshed the landing page with a larger "Choose your Adventure" hero and direct-launch adventure buttons for Fibonacci and T-Shirt deck creation.
+
+---
+
 ## [1.0.1] - 2026-04-09
 
 ### Added
