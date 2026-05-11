@@ -419,6 +419,13 @@ p {
   color: #fffdf1;
 }
 
+.participant-remove-btn {
+  white-space: nowrap;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.75rem;
+  line-height: 1.1;
+}
+
 .story-row {
   display: flex;
   flex-wrap: wrap;

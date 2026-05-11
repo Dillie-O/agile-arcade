@@ -141,6 +141,17 @@ describe("removeParticipant", () => {
     removeParticipant(room.id, "p1");
     assert.equal(getRoom(room.id), undefined);
   });
+
+  it("keeps current host when removing a non-host participant", () => {
+    const room = createRoom();
+    addParticipant(room.id, { id: "p1", name: "Alice", emoji: "🎮" });
+    addParticipant(room.id, { id: "p2", name: "Bob", emoji: "🚀" });
+    removeParticipant(room.id, "p2");
+    const updated = getRoom(room.id);
+    const host = updated.participants.find((p) => p.isHost);
+    assert.equal(host.id, "p1");
+    assert.equal(updated.participants.length, 1);
+  });
 });
 
 describe("markParticipantDisconnected / reconnectParticipant", () => {

@@ -4,13 +4,16 @@ type Props = {
   participants: Participant[];
   revealed: boolean;
   myId: string | null;
+  isHost: boolean;
+  onRemoveParticipant?: (participant: Participant) => void;
 };
 
-export function ParticipantList({ participants, revealed, myId }: Props) {
+export function ParticipantList({ participants, revealed, myId, isHost, onRemoveParticipant }: Props) {
   return (
     <ul className="participant-list">
       {participants.map((participant) => {
         const isMe = participant.id === myId;
+        const canRemove = isHost && !isMe;
         const stateLabel = participant.hasVoted || participant.vote ? "Ready!" : "Waiting...";
         const displayStatus = revealed && participant.vote ? `${stateLabel} ${participant.vote}` : stateLabel;
         const emojiClass = participant.isHost
@@ -30,6 +33,16 @@ export function ParticipantList({ participants, revealed, myId }: Props) {
                 {displayStatus}
               </strong>
             </div>
+            {canRemove ? (
+              <button
+                className="button button-danger participant-remove-btn"
+                type="button"
+                onClick={() => onRemoveParticipant?.(participant)}
+                aria-label={`Remove ${participant.name} from room`}
+              >
+                Remove
+              </button>
+            ) : null}
           </li>
         );
       })}
