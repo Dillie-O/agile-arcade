@@ -6,7 +6,7 @@
 Hosts can now remove participants from the room directly in the participant list.
 
 ### Changed
-When a participant is removed by the host, they are notified and must rejoin from the join modal.
+When a participant is removed by the host, they are shown a dedicated removal message and prompted to return home (the join modal no longer reopens automatically).
 
 ---
 
