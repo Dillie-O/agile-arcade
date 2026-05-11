@@ -7,4 +7,4 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## Repository defaults
 
 - For any user-facing UX change, update `/home/runner/work/agile-arcade/agile-arcade/CHANGELOG.md` in the same task.
-- For any user-facing UX change, generate and commit updated screenshots of the changed UI states.
+- For any user-facing UX change, provide updated screenshots in the PR comments or PR description (do not commit screenshot files).

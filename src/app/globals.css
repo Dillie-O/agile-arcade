@@ -420,10 +420,11 @@ p {
 }
 
 .participant-remove-btn {
-  white-space: nowrap;
-  padding: 0.3rem 0.55rem;
-  font-size: 0.75rem;
-  line-height: 1.1;
+  padding: 0.2rem 0.35rem;
+  min-width: 1.8rem;
+  min-height: 1.8rem;
+  font-size: 0.9rem;
+  line-height: 1;
 }
 
 .story-row {

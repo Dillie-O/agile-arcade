@@ -39,8 +39,9 @@ export function ParticipantList({ participants, revealed, myId, isHost, onRemove
                 type="button"
                 onClick={() => onRemoveParticipant?.(participant)}
                 aria-label={`Remove ${participant.name} from room`}
+                title={`Remove ${participant.name} from room`}
               >
-                Remove
+                ❌
               </button>
             ) : null}
           </li>
