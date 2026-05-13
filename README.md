@@ -157,6 +157,7 @@ Built on **Next.js 16** (App Router) with a custom Node.js server (`server.js`) 
 | `update_story` | `{ roomId, story }` |
 | `reveal_votes` | `{ roomId }` |
 | `reset_round` | `{ roomId }` |
+| `remove_participant` | `{ roomId, participantId }` (host only) |
 
 </details>
 
@@ -169,6 +170,7 @@ Built on **Next.js 16** (App Router) with a custom Node.js server (`server.js`) 
 | `room_not_found` | Room ID does not exist or has expired |
 | `error` | Validation or permission error message |
 | `not_authorized` | Action requires host privileges |
+| `removed_from_room` | Sent to a participant after the host removes them from the room |
 
 </details>
 
@@ -177,4 +179,3 @@ Built on **Next.js 16** (App Router) with a custom Node.js server (`server.js`) 
 ## License
 
 [GNU General Public License v3.0](LICENSE)
-

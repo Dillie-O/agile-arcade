@@ -438,6 +438,57 @@ app.prepare().then(() => {
       emitRoom(roomId);
     });
 
+    socket.on("remove_participant", (payload = {}) => {
+      const roomId = String(payload.roomId || socket.data.roomId || "").toUpperCase();
+      const targetParticipantId = String(payload.participantId || "").trim();
+      const participantId = socket.data.participantId || socket.id;
+      const room = getRoom(roomId);
+
+      if (!room) {
+        socket.emit("room_not_found");
+        return;
+      }
+
+      if (!targetParticipantId) {
+        socket.emit("error", "Invalid participant removal payload");
+        return;
+      }
+
+      const participant = room.participants.find((item) => item.id === participantId);
+      if (!participant || !participant.isHost) {
+        socket.emit("not_authorized");
+        return;
+      }
+
+      if (targetParticipantId === participantId) {
+        socket.emit("error", "Host cannot remove themselves");
+        return;
+      }
+
+      const target = room.participants.find((item) => item.id === targetParticipantId);
+      if (!target) {
+        socket.emit("error", "Participant not found");
+        return;
+      }
+
+      removeParticipant(roomId, targetParticipantId);
+      touchRoom(roomId);
+
+      const targetSocketId = activeParticipants.get(targetParticipantId);
+      if (targetSocketId) {
+        activeParticipants.delete(targetParticipantId);
+        const targetSocket = io.sockets.sockets.get(targetSocketId);
+        if (targetSocket) {
+          targetSocket.leave(roomId);
+          targetSocket.data.roomId = undefined;
+          targetSocket.data.participantId = undefined;
+          targetSocket.emit("removed_from_room");
+        }
+      }
+
+      emitRoom(roomId);
+    });
+
     socket.on("disconnect", () => {
       const roomId = socket.data.roomId;
       const participantId = socket.data.participantId || socket.id;

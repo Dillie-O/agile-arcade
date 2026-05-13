@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.5] - 2026-05-11
+
+### Added
+Hosts can now remove participants from the room directly in the participant list.
+
+### Changed
+When a participant is removed by the host, they are shown a dedicated removal message and prompted to return home (the join modal no longer reopens automatically).
+
+---
+
 ## [1.2.4] - 2026-05-11
 
 ### Changed

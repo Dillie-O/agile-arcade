@@ -13,7 +13,7 @@ import { ResultsSummary } from "@/components/ResultsSummary";
 import { NgrokPanel } from "@/components/NgrokPanel";
 import { StatusBar } from "@/components/StatusBar";
 import { randomEmoji } from "@/lib/constants";
-import { Identity, Room } from "@/lib/types";
+import { Identity, Participant, Room } from "@/lib/types";
 
 type Props = {
   roomId: string;
@@ -56,6 +56,7 @@ export function GameRoom({ roomId }: Props) {
   const [tunnelUrl, setTunnelUrl] = useState<string | null>(null);
   const [newHostNotice, setNewHostNotice] = useState(false);
   const [timerDisplay, setTimerDisplay] = useState<number | null>(null);
+  const [wasRemovedFromRoom, setWasRemovedFromRoom] = useState(false);
   const prevIsHostRef = useRef(false);
 
   useEffect(() => {
@@ -139,6 +140,14 @@ export function GameRoom({ roomId }: Props) {
       setError(message || "Something went wrong.");
     });
 
+    socket.on("removed_from_room", () => {
+      localStorage.removeItem(getIdentityKey(roomId));
+      setIdentity(null);
+      setRoom(null);
+      setWasRemovedFromRoom(true);
+      setError("You were removed from this room by the host.");
+    });
+
     return () => {
       socket.disconnect();
       socketRef.current = null;
@@ -190,6 +199,7 @@ export function GameRoom({ roomId }: Props) {
   const onJoin = (nextIdentity: Identity) => {
     const identityWithId = { ...nextIdentity, participantId: crypto.randomUUID() };
     localStorage.setItem(getIdentityKey(roomId), JSON.stringify(identityWithId));
+    setWasRemovedFromRoom(false);
     setIdentity(identityWithId);
   };
 
@@ -223,6 +233,13 @@ export function GameRoom({ roomId }: Props) {
     }, 400);
   };
 
+  const onRemoveParticipant = (participant: Participant) => {
+    if (!window.confirm(`Remove ${participant.name} from the room?`)) {
+      return;
+    }
+    socketRef.current?.emit("remove_participant", { roomId, participantId: participant.id });
+  };
+
   const handleStopTunnel = async () => {
     await fetch("/api/stop-tunnel", { method: "POST" });
     setTunnelUrl(null);
@@ -242,13 +259,27 @@ export function GameRoom({ roomId }: Props) {
     );
   }
 
+  if (wasRemovedFromRoom) {
+    return (
+      <LayoutShell>
+        <main className="panel room-not-found">
+          <h1>Removed from Room</h1>
+          <p>You were removed from this room by the host.</p>
+          <Link href="/" className="button">
+            Return Home
+          </Link>
+        </main>
+      </LayoutShell>
+    );
+  }
+
   const selectedVote = pendingVote ?? me?.vote;
   const isHost = Boolean(me?.isHost);
 
   return (
     <LayoutShell>
       <JoinModal
-        isOpen={identityLoaded && !identity}
+        isOpen={identityLoaded && !identity && !wasRemovedFromRoom}
         onSubmit={onJoin}
         onRandomizeEmoji={randomEmoji}
       />
@@ -281,6 +312,8 @@ export function GameRoom({ roomId }: Props) {
               participants={room?.participants ?? []}
               revealed={Boolean(room?.revealed)}
               myId={myId}
+              isHost={isHost}
+              onRemoveParticipant={onRemoveParticipant}
             />
           </section>
 
