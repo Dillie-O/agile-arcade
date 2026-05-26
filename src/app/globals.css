@@ -356,6 +356,9 @@ p {
   align-items: center;
   flex: 1;
   min-width: 0;
+}
+
+.participant-row:has(.participant-remove-btn) .participant-main {
   padding-right: 2.2rem;
 }
 
