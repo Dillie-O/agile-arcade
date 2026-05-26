@@ -178,6 +178,30 @@ app.prepare().then(() => {
   io.on("connection", (socket) => {
     let lastVoteAt = 0;
 
+    socket.on("join_viewer", (payload = {}) => {
+      const roomId = String(payload.roomId || "").toUpperCase();
+
+      if (!roomId) {
+        socket.emit("error", "Invalid room");
+        return;
+      }
+
+      const room = getRoom(roomId);
+      if (!room) {
+        socket.emit("room_not_found");
+        return;
+      }
+
+      if (socket.data.viewerRoomId && socket.data.viewerRoomId !== roomId) {
+        socket.leave(socket.data.viewerRoomId);
+      }
+
+      socket.join(roomId);
+      socket.data.viewerRoomId = roomId;
+      touchRoom(roomId);
+      emitRoom(roomId);
+    });
+
     socket.on("join_room", (payload = {}) => {
       const roomId = String(payload.roomId || "").toUpperCase();
       const name = String(payload.name || "").trim();
@@ -208,6 +232,7 @@ app.prepare().then(() => {
       socket.join(roomId);
       socket.data.roomId = roomId;
       socket.data.participantId = participantId;
+      socket.data.viewerRoomId = undefined;
 
       const existing = room.participants.find((p) => p.id === participantId);
       if (existing) {
@@ -240,6 +265,12 @@ app.prepare().then(() => {
 
       if (!isValidVote(room.deckType, value)) {
         socket.emit("error", "Invalid vote value");
+        return;
+      }
+
+      const participant = room.participants.find((item) => item.id === participantId);
+      if (!participant) {
+        socket.emit("error", "Join the room before voting");
         return;
       }
 
@@ -490,10 +521,12 @@ app.prepare().then(() => {
     });
 
     socket.on("disconnect", () => {
-      const roomId = socket.data.roomId;
-      const participantId = socket.data.participantId || socket.id;
+      const roomId = socket.data.roomId || socket.data.viewerRoomId;
+      const participantId = socket.data.participantId || null;
 
-      activeParticipants.delete(participantId);
+      if (participantId) {
+        activeParticipants.delete(participantId);
+      }
 
       if (!roomId || !participantId) {
         return;

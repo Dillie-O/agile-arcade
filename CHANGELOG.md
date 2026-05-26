@@ -1,5 +1,15 @@
 # Changelog
 
+## [x.y.z] - YYYY-MM-DD
+
+### Added
+Hosts can now open a dedicated `/game/[roomId]/kiosk` view for screen sharing that shows the live room without voting cards or host controls.
+
+### Changed
+Kiosk tabs now subscribe as read-only viewers, so they do not join the participant list or affect vote completion logic.
+
+---
+
 ## [1.2.5] - 2026-05-11
 
 ### Added
@@ -75,22 +85,6 @@ Reconnect grace period prevents host (and participants) from being permanently r
 
 ### Changed
 Socket.IO server now uses explicit `pingInterval: 10000` / `pingTimeout: 30000` to reduce spurious disconnects under Cloud Run's idle-connection handling.
-
----
-
-## [x.y.z] - YYYY-MM-DD
-
-### Added
-
-### Changed
-
-### Deprecated
-
-### Removed
-
-### Fixed
-
-### Security
 
 ---
 
