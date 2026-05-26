@@ -7,6 +7,9 @@ Hosts can now open a dedicated `/game/[roomId]/kiosk` view for screen sharing th
 
 ### Changed
 Kiosk tabs now subscribe as read-only viewers, so they do not join the participant list or affect vote completion logic.
+All participants (not just the host) can now open or copy the kiosk link from the room view.
+Only one kiosk view is allowed per room at a time; a clear message is shown if the kiosk slot is already taken.
+The kiosk view now includes an "Exit Kiosk Mode" button to return to the normal room.
 
 ---
 

@@ -337,6 +337,14 @@ p {
   border-color: #8d631d;
 }
 
+.kiosk-mode-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 .kiosk-link-row,
 .kiosk-link-copy,
 .kiosk-link-actions {

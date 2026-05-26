@@ -61,6 +61,7 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
   const [timerDisplay, setTimerDisplay] = useState<number | null>(null);
   const [wasRemovedFromRoom, setWasRemovedFromRoom] = useState(false);
   const [kioskCopied, setKioskCopied] = useState(false);
+  const [kioskOccupied, setKioskOccupied] = useState(false);
   const prevIsHostRef = useRef(false);
 
   useEffect(() => {
@@ -121,6 +122,10 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
 
     socket.on("room_not_found", () => {
       setRoomNotFound(true);
+    });
+
+    socket.on("kiosk_occupied", () => {
+      setKioskOccupied(true);
     });
 
     socket.on("error", (message: string) => {
@@ -333,6 +338,20 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
     );
   }
 
+  if (kioskOccupied) {
+    return (
+      <LayoutShell>
+        <main className="panel room-not-found">
+          <h1>Kiosk Already Active</h1>
+          <p>This room already has an active kiosk view. Only one kiosk is allowed per room.</p>
+          <Link href={`/game/${roomId}`} className="button">
+            Return to Room
+          </Link>
+        </main>
+      </LayoutShell>
+    );
+  }
+
   const selectedVote = pendingVote ?? me?.vote;
   const isHost = !isKiosk && Boolean(me?.isHost);
 
@@ -355,8 +374,15 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
 
         {isKiosk ? (
           <section className="panel kiosk-mode-panel">
-            <h2 className="section-heading">Kiosk Mode</h2>
-            <p className="helper-text">Read-only display for screen sharing. Voting and host controls stay hidden in this tab.</p>
+            <div className="kiosk-mode-row">
+              <div>
+                <h2 className="section-heading">Kiosk Mode</h2>
+                <p className="helper-text">Read-only display for screen sharing. Voting and host controls stay hidden in this tab.</p>
+              </div>
+              <Link href={`/game/${roomId}`} className="button">
+                Exit Kiosk Mode ✕
+              </Link>
+            </div>
           </section>
         ) : null}
 
@@ -368,7 +394,7 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
 
         {isHost ? <NgrokPanel tunnelActive={!!tunnelUrl} onTunnelChange={setTunnelUrl} /> : null}
 
-        {isHost ? (
+        {!isKiosk && identity ? (
           <section className="panel kiosk-link-panel">
             <div className="kiosk-link-row wrap">
               <div className="kiosk-link-copy">

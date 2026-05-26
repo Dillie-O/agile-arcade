@@ -32,6 +32,9 @@ const activeParticipants = new Map();
 // Maps roomId -> server-side timer handle for countdown
 const roomTimers = new Map();
 
+// Maps roomId -> socketId for the single active kiosk viewer per room
+const kioskSockets = new Map();
+
 // Rate-limit state for tunnel creation
 let lastTunnelAttemptAt = 0;
 const TUNNEL_RATE_LIMIT_MS = 5000;
@@ -192,12 +195,23 @@ app.prepare().then(() => {
         return;
       }
 
+      const existingKioskId = kioskSockets.get(roomId);
+      if (existingKioskId && existingKioskId !== socket.id) {
+        socket.emit("kiosk_occupied");
+        return;
+      }
+
       if (socket.data.viewerRoomId && socket.data.viewerRoomId !== roomId) {
-        socket.leave(socket.data.viewerRoomId);
+        const prevRoom = socket.data.viewerRoomId;
+        if (kioskSockets.get(prevRoom) === socket.id) {
+          kioskSockets.delete(prevRoom);
+        }
+        socket.leave(prevRoom);
       }
 
       socket.join(roomId);
       socket.data.viewerRoomId = roomId;
+      kioskSockets.set(roomId, socket.id);
       touchRoom(roomId);
       emitRoom(roomId);
     });
@@ -526,6 +540,11 @@ app.prepare().then(() => {
 
       if (participantId) {
         activeParticipants.delete(participantId);
+      }
+
+      const viewerRoomId = socket.data.viewerRoomId;
+      if (viewerRoomId && kioskSockets.get(viewerRoomId) === socket.id) {
+        kioskSockets.delete(viewerRoomId);
       }
 
       if (!roomId || !participantId) {
