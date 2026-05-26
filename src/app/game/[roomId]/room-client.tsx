@@ -50,7 +50,7 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
   const [room, setRoom] = useState<Room | null>(null);
   const [storyDraft, setStoryDraft] = useState<string | null>(null);
   const [identity, setIdentity] = useState<Identity | null>(null);
-  const [identityLoaded, setIdentityLoaded] = useState(false);
+  const [identityLoaded, setIdentityLoaded] = useState(isKiosk);
   const [myId, setMyId] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [roomNotFound, setRoomNotFound] = useState(false);
@@ -74,7 +74,6 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
 
   useEffect(() => {
     if (isKiosk) {
-      setIdentityLoaded(true);
       return;
     }
 
