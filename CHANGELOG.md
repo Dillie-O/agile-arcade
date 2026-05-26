@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.6] - 2026-05-26
+
+### Fixed
+Improved host remove-participant button visibility/clickability by revealing it on participant hover/focus and keeping it visible on touch devices.
+
+---
+
 ## [1.2.5] - 2026-05-11
 
 ### Added
