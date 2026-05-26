@@ -1,6 +1,6 @@
 {
   "name": "agile-arcade",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "private": true,
   "scripts": {
     "dev": "NODE_ENV=development node server.js",
