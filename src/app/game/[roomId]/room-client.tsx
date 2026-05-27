@@ -216,6 +216,14 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
       socketRef.current = null;
       myIdRef.current = null;
       setMyId(null);
+      if (storyDebounceRef.current) {
+        clearTimeout(storyDebounceRef.current);
+        storyDebounceRef.current = null;
+      }
+      if (hostNoticeTimerRef.current) {
+        clearTimeout(hostNoticeTimerRef.current);
+        hostNoticeTimerRef.current = null;
+      }
     };
   }, [identity, isKiosk, roomId]);
 
