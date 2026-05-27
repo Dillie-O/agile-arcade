@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.2.7] - 2026-05-27
+## [1.2.8] - 2026-05-27
 
 ### Added
 Hosts can now open a dedicated `/game/[roomId]/kiosk` view for screen sharing that shows the live room without voting cards or host controls.
