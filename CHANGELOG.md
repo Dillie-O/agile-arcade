@@ -2,6 +2,14 @@
 
 ## [1.2.8] - 2026-05-27
 
+### Changed
+The separate kiosk row was removed; kiosk open/exit actions now appear inline in the top link bar next to the copy button.
+Kiosk view now shows a disabled coffee card with "Voting..." while votes are in progress, then displays results when revealed.
+
+---
+
+## [1.2.7] - 2026-05-27
+
 ### Added
 Hosts can now open a dedicated `/game/[roomId]/kiosk` view for screen sharing that shows the live room without voting cards or host controls.
 
@@ -10,8 +18,6 @@ Kiosk tabs now subscribe as read-only viewers, so they do not join the participa
 All participants (not just the host) can now open or copy the kiosk link from the room view.
 Only one kiosk view is allowed per room at a time; a clear message is shown if the kiosk slot is already taken.
 The kiosk view now includes an "Exit Kiosk Mode" button to return to the normal room.
-The separate kiosk row was removed; kiosk open/exit actions now appear inline in the top link bar next to the copy button.
-Kiosk view now shows a disabled coffee card with "Voting..." while votes are in progress, then displays results when revealed.
 
 ---
 
