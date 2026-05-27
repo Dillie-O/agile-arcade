@@ -376,6 +376,7 @@ p {
 }
 
 .participant-row {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -395,6 +396,10 @@ p {
   align-items: center;
   flex: 1;
   min-width: 0;
+}
+
+.participant-row:has(.participant-remove-btn) .participant-main {
+  padding-right: 2.2rem;
 }
 
 .participant-emoji {
@@ -460,6 +465,10 @@ p {
 }
 
 .participant-remove-btn {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -467,6 +476,22 @@ p {
   min-width: 1.8rem;
   min-height: 1.8rem;
   line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.participant-row:hover .participant-remove-btn,
+.participant-row:focus-within .participant-remove-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (hover: none) {
+  .participant-remove-btn {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 .story-row {

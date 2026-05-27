@@ -16,7 +16,7 @@ export default function RootLayout({
       <body>
         {children}
         <footer className="site-footer">
-          <span className="site-footer__link">Ver. 1.2.5 (2026-05-11)&nbsp;|&nbsp;</span>
+          <span className="site-footer__link">Ver. 1.2.7 (2026-05-27)&nbsp;|&nbsp;</span>
           <a
             href="https://github.com/Dillie-O/agile-arcade"
             target="_blank"
