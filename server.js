@@ -243,6 +243,14 @@ app.prepare().then(() => {
         return;
       }
 
+      if (socket.data.viewerRoomId) {
+        const prevViewerRoom = socket.data.viewerRoomId;
+        if (kioskSockets.get(prevViewerRoom) === socket.id) {
+          kioskSockets.delete(prevViewerRoom);
+        }
+        socket.leave(prevViewerRoom);
+      }
+
       socket.join(roomId);
       socket.data.roomId = roomId;
       socket.data.participantId = participantId;
