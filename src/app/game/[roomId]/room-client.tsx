@@ -17,6 +17,7 @@ import { Identity, Participant, Room } from "@/lib/types";
 
 type Props = {
   roomId: string;
+  mode?: "player" | "kiosk";
 };
 
 const getIdentityKey = (roomId: string) => `agile-arcade:${roomId}:identity`;
@@ -38,16 +39,18 @@ const toSafeHttpUrl = (value: string | null | undefined): string | null => {
   return null;
 };
 
-export function GameRoom({ roomId }: Props) {
+export function GameRoom({ roomId, mode = "player" }: Props) {
+  const isKiosk = mode === "kiosk";
   const socketRef = useRef<Socket | null>(null);
   const myIdRef = useRef<string | null>(null);
   const hostNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const storyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const kioskCopiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
   const [storyDraft, setStoryDraft] = useState<string | null>(null);
   const [identity, setIdentity] = useState<Identity | null>(null);
-  const [identityLoaded, setIdentityLoaded] = useState(false);
+  const [identityLoaded, setIdentityLoaded] = useState(isKiosk);
   const [myId, setMyId] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [roomNotFound, setRoomNotFound] = useState(false);
@@ -57,9 +60,24 @@ export function GameRoom({ roomId }: Props) {
   const [newHostNotice, setNewHostNotice] = useState(false);
   const [timerDisplay, setTimerDisplay] = useState<number | null>(null);
   const [wasRemovedFromRoom, setWasRemovedFromRoom] = useState(false);
+  const [kioskCopied, setKioskCopied] = useState(false);
+  const [kioskOccupied, setKioskOccupied] = useState(false);
   const prevIsHostRef = useRef(false);
 
   useEffect(() => {
+    return () => {
+      if (hostNoticeTimerRef.current) clearTimeout(hostNoticeTimerRef.current);
+      if (storyDebounceRef.current) clearTimeout(storyDebounceRef.current);
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      if (kioskCopiedTimerRef.current) clearTimeout(kioskCopiedTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isKiosk) {
+      return;
+    }
+
     const raw = localStorage.getItem(getIdentityKey(roomId));
     if (raw) {
       try {
@@ -77,10 +95,55 @@ export function GameRoom({ roomId }: Props) {
       }
     }
     setIdentityLoaded(true);
-  }, [roomId]);
+  }, [isKiosk, roomId]);
 
   useEffect(() => {
-    if (!identity) {
+    if (!isKiosk) {
+      return;
+    }
+
+    const socket = io({ transports: ["websocket", "polling"] });
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      setIsConnected(true);
+      socket.emit("join_viewer", { roomId });
+    });
+
+    socket.on("disconnect", () => {
+      setIsConnected(false);
+    });
+
+    socket.on("room_state", (incoming: Room) => {
+      setRoom(incoming);
+      setRoomNotFound(false);
+      setError(null);
+    });
+
+    socket.on("room_not_found", () => {
+      setRoomNotFound(true);
+    });
+
+    socket.on("kiosk_occupied", () => {
+      setKioskOccupied(true);
+      if (socketRef.current === socket) {
+        socketRef.current = null;
+      }
+      socket.disconnect();
+    });
+
+    socket.on("error", (message: string) => {
+      setError(message || "Something went wrong.");
+    });
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [isKiosk, roomId]);
+
+  useEffect(() => {
+    if (isKiosk || !identity) {
       return;
     }
 
@@ -153,10 +216,16 @@ export function GameRoom({ roomId }: Props) {
       socketRef.current = null;
       myIdRef.current = null;
       setMyId(null);
-      if (hostNoticeTimerRef.current) clearTimeout(hostNoticeTimerRef.current);
-      if (storyDebounceRef.current) clearTimeout(storyDebounceRef.current);
+      if (storyDebounceRef.current) {
+        clearTimeout(storyDebounceRef.current);
+        storyDebounceRef.current = null;
+      }
+      if (hostNoticeTimerRef.current) {
+        clearTimeout(hostNoticeTimerRef.current);
+        hostNoticeTimerRef.current = null;
+      }
     };
-  }, [identity, roomId]);
+  }, [identity, isKiosk, roomId]);
 
   useEffect(() => {
     const timerEndsAt = room?.timerEndsAt ?? null;
@@ -219,6 +288,7 @@ export function GameRoom({ roomId }: Props) {
   };
 
   const safeStoryUrl = toSafeHttpUrl(storyDraft ?? room?.story ?? "");
+  const kioskHref = `/game/${roomId}/kiosk`;
 
   const onStartTimer = (duration: number) => {
     socketRef.current?.emit("start_timer", { roomId, duration });
@@ -243,6 +313,17 @@ export function GameRoom({ roomId }: Props) {
   const handleStopTunnel = async () => {
     await fetch("/api/stop-tunnel", { method: "POST" });
     setTunnelUrl(null);
+  };
+
+  const onCopyKioskLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}${kioskHref}`);
+      setKioskCopied(true);
+      if (kioskCopiedTimerRef.current) clearTimeout(kioskCopiedTimerRef.current);
+      kioskCopiedTimerRef.current = setTimeout(() => setKioskCopied(false), 1200);
+    } catch {
+      console.error("Failed to copy kiosk link to clipboard.");
+    }
   };
 
   if (roomNotFound) {
@@ -273,16 +354,32 @@ export function GameRoom({ roomId }: Props) {
     );
   }
 
+  if (kioskOccupied) {
+    return (
+      <LayoutShell>
+        <main className="panel room-not-found">
+          <h1>Kiosk Already Active</h1>
+          <p>This room already has an active kiosk view. Only one kiosk is allowed per room.</p>
+          <Link href={`/game/${roomId}`} className="button">
+            Return to Room
+          </Link>
+        </main>
+      </LayoutShell>
+    );
+  }
+
   const selectedVote = pendingVote ?? me?.vote;
-  const isHost = Boolean(me?.isHost);
+  const isHost = !isKiosk && Boolean(me?.isHost);
 
   return (
     <LayoutShell>
-      <JoinModal
-        isOpen={identityLoaded && !identity && !wasRemovedFromRoom}
-        onSubmit={onJoin}
-        onRandomizeEmoji={randomEmoji}
-      />
+      {!isKiosk ? (
+        <JoinModal
+          isOpen={identityLoaded && !identity && !wasRemovedFromRoom}
+          onSubmit={onJoin}
+          onRandomizeEmoji={randomEmoji}
+        />
+      ) : null}
 
       <main className="room-layout">
         <header className="panel app-header room-header">
@@ -291,6 +388,20 @@ export function GameRoom({ roomId }: Props) {
 
         <StatusBar roomId={roomId} isConnected={isConnected} tunnelUrl={tunnelUrl} onStopTunnel={isHost ? handleStopTunnel : undefined} />
 
+        {isKiosk ? (
+          <section className="panel kiosk-mode-panel">
+            <div className="kiosk-mode-row">
+              <div>
+                <h2 className="section-heading">Kiosk Mode</h2>
+                <p className="helper-text">Read-only display for screen sharing. Voting and host controls stay hidden in this tab.</p>
+              </div>
+              <Link href={`/game/${roomId}`} className="button">
+                Exit Kiosk Mode ✕
+              </Link>
+            </div>
+          </section>
+        ) : null}
+
         {newHostNotice ? (
           <div className="host-notice" role="status">
             You are now the host
@@ -298,6 +409,25 @@ export function GameRoom({ roomId }: Props) {
         ) : null}
 
         {isHost ? <NgrokPanel tunnelActive={!!tunnelUrl} onTunnelChange={setTunnelUrl} /> : null}
+
+        {!isKiosk && identity ? (
+          <section className="panel kiosk-link-panel">
+            <div className="kiosk-link-row wrap">
+              <div className="kiosk-link-copy">
+                <span className="room-info-label">Kiosk:</span>
+                <strong className="room-url-text">/game/{roomId}/kiosk</strong>
+              </div>
+              <div className="kiosk-link-actions">
+                <Link href={kioskHref} target="_blank" rel="noopener noreferrer" className="button button-blue">
+                  Open Kiosk View ↗
+                </Link>
+                <button className="button room-copy-button" type="button" onClick={onCopyKioskLink}>
+                  {kioskCopied ? "Copied ✓" : "Copy Kiosk Link ✒️"}
+                </button>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         {timerDisplay !== null ? (
           <div className="timer-banner" role="status" aria-live="polite">
@@ -356,22 +486,26 @@ export function GameRoom({ roomId }: Props) {
               deckType={room?.deckType ?? "fibonacci"}
             />
 
-            <h2 className="section-heading">Select Your Card</h2>
+            {!isKiosk ? (
+              <>
+                <h2 className="section-heading">Select Your Card</h2>
 
-            <CardDeck
-              deckType={room?.deckType ?? "fibonacci"}
-              selectedValue={selectedVote}
-              onSelect={onCastVote}
-            />
+                <CardDeck
+                  deckType={room?.deckType ?? "fibonacci"}
+                  selectedValue={selectedVote}
+                  onSelect={onCastVote}
+                />
 
-            <Controls
-              isHost={isHost}
-              revealed={Boolean(room?.revealed)}
-              timerEndsAt={room?.timerEndsAt ?? null}
-              onReveal={onRevealVotes}
-              onReset={onResetRound}
-              onStartTimer={onStartTimer}
-            />
+                <Controls
+                  isHost={isHost}
+                  revealed={Boolean(room?.revealed)}
+                  timerEndsAt={room?.timerEndsAt ?? null}
+                  onReveal={onRevealVotes}
+                  onReset={onResetRound}
+                  onStartTimer={onStartTimer}
+                />
+              </>
+            ) : null}
 
             {error ? <p className="error-text">{error}</p> : null}
           </section>

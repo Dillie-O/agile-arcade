@@ -327,6 +327,46 @@ p {
   color: #fffdf2;
 }
 
+.kiosk-mode-panel,
+.kiosk-link-panel {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.kiosk-mode-panel {
+  border-color: #8d631d;
+}
+
+.kiosk-mode-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.kiosk-link-row,
+.kiosk-link-copy,
+.kiosk-link-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.kiosk-link-row {
+  justify-content: space-between;
+}
+
+.kiosk-link-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.kiosk-link-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .participant-list {
   list-style: none;
   display: grid;

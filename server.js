@@ -32,6 +32,9 @@ const activeParticipants = new Map();
 // Maps roomId -> server-side timer handle for countdown
 const roomTimers = new Map();
 
+// Maps roomId -> socketId for the single active kiosk viewer per room
+const kioskSockets = new Map();
+
 // Rate-limit state for tunnel creation
 let lastTunnelAttemptAt = 0;
 const TUNNEL_RATE_LIMIT_MS = 5000;
@@ -178,6 +181,41 @@ app.prepare().then(() => {
   io.on("connection", (socket) => {
     let lastVoteAt = 0;
 
+    socket.on("join_viewer", (payload = {}) => {
+      const roomId = String(payload.roomId || "").toUpperCase();
+
+      if (!roomId) {
+        socket.emit("error", "Invalid room");
+        return;
+      }
+
+      const room = getRoom(roomId);
+      if (!room) {
+        socket.emit("room_not_found");
+        return;
+      }
+
+      const existingKioskId = kioskSockets.get(roomId);
+      if (existingKioskId && existingKioskId !== socket.id) {
+        socket.emit("kiosk_occupied");
+        return;
+      }
+
+      if (socket.data.viewerRoomId && socket.data.viewerRoomId !== roomId) {
+        const prevRoom = socket.data.viewerRoomId;
+        if (kioskSockets.get(prevRoom) === socket.id) {
+          kioskSockets.delete(prevRoom);
+        }
+        socket.leave(prevRoom);
+      }
+
+      socket.join(roomId);
+      socket.data.viewerRoomId = roomId;
+      kioskSockets.set(roomId, socket.id);
+      touchRoom(roomId);
+      emitRoom(roomId);
+    });
+
     socket.on("join_room", (payload = {}) => {
       const roomId = String(payload.roomId || "").toUpperCase();
       const name = String(payload.name || "").trim();
@@ -192,8 +230,6 @@ app.prepare().then(() => {
       } else {
         participantId = clientId || socket.id;
       }
-      activeParticipants.set(participantId, socket.id);
-
       if (!roomId || !name) {
         socket.emit("error", "Invalid room or name");
         return;
@@ -205,9 +241,19 @@ app.prepare().then(() => {
         return;
       }
 
+      if (socket.data.viewerRoomId) {
+        const prevViewerRoom = socket.data.viewerRoomId;
+        if (kioskSockets.get(prevViewerRoom) === socket.id) {
+          kioskSockets.delete(prevViewerRoom);
+        }
+        socket.leave(prevViewerRoom);
+      }
+
       socket.join(roomId);
       socket.data.roomId = roomId;
       socket.data.participantId = participantId;
+      activeParticipants.set(participantId, socket.id);
+      socket.data.viewerRoomId = undefined;
 
       const existing = room.participants.find((p) => p.id === participantId);
       if (existing) {
@@ -240,6 +286,12 @@ app.prepare().then(() => {
 
       if (!isValidVote(room.deckType, value)) {
         socket.emit("error", "Invalid vote value");
+        return;
+      }
+
+      const participant = room.participants.find((item) => item.id === participantId);
+      if (!participant) {
+        socket.emit("error", "Join the room before voting");
         return;
       }
 
@@ -490,10 +542,17 @@ app.prepare().then(() => {
     });
 
     socket.on("disconnect", () => {
-      const roomId = socket.data.roomId;
-      const participantId = socket.data.participantId || socket.id;
+      const roomId = socket.data.roomId || socket.data.viewerRoomId;
+      const participantId = socket.data.participantId || null;
 
-      activeParticipants.delete(participantId);
+      if (participantId) {
+        activeParticipants.delete(participantId);
+      }
+
+      const viewerRoomId = socket.data.viewerRoomId;
+      if (viewerRoomId && kioskSockets.get(viewerRoomId) === socket.id) {
+        kioskSockets.delete(viewerRoomId);
+      }
 
       if (!roomId || !participantId) {
         return;
