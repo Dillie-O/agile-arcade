@@ -308,10 +308,14 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
   };
 
   const onCopyKioskLink = async () => {
-    await navigator.clipboard.writeText(`${window.location.origin}${kioskHref}`);
-    setKioskCopied(true);
-    if (kioskCopiedTimerRef.current) clearTimeout(kioskCopiedTimerRef.current);
-    kioskCopiedTimerRef.current = setTimeout(() => setKioskCopied(false), 1200);
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}${kioskHref}`);
+      setKioskCopied(true);
+      if (kioskCopiedTimerRef.current) clearTimeout(kioskCopiedTimerRef.current);
+      kioskCopiedTimerRef.current = setTimeout(() => setKioskCopied(false), 1200);
+    } catch {
+      console.error("Failed to copy kiosk link to clipboard.");
+    }
   };
 
   if (roomNotFound) {
