@@ -126,6 +126,10 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
 
     socket.on("kiosk_occupied", () => {
       setKioskOccupied(true);
+      if (socketRef.current === socket) {
+        socketRef.current = null;
+      }
+      socket.disconnect();
     });
 
     socket.on("error", (message: string) => {
