@@ -230,8 +230,6 @@ app.prepare().then(() => {
       } else {
         participantId = clientId || socket.id;
       }
-      activeParticipants.set(participantId, socket.id);
-
       if (!roomId || !name) {
         socket.emit("error", "Invalid room or name");
         return;
@@ -254,6 +252,7 @@ app.prepare().then(() => {
       socket.join(roomId);
       socket.data.roomId = roomId;
       socket.data.participantId = participantId;
+      activeParticipants.set(participantId, socket.id);
       socket.data.viewerRoomId = undefined;
 
       const existing = room.participants.find((p) => p.id === participantId);
