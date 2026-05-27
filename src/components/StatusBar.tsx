@@ -1,15 +1,23 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+
+type KioskAction = {
+  href: string;
+  label: string;
+  external?: boolean;
+};
 
 type Props = {
   roomId: string;
   isConnected: boolean;
   tunnelUrl?: string | null;
   onStopTunnel?: () => void;
+  kioskAction?: KioskAction;
 };
 
-export function StatusBar({ roomId, isConnected, tunnelUrl, onStopTunnel }: Props) {
+export function StatusBar({ roomId, isConnected, tunnelUrl, onStopTunnel, kioskAction }: Props) {
   const [copied, setCopied] = useState(false);
   const [ngrokCopied, setNgrokCopied] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
@@ -65,6 +73,16 @@ export function StatusBar({ roomId, isConnected, tunnelUrl, onStopTunnel }: Prop
         <button className="button room-copy-button" type="button" onClick={onCopy} disabled={!shareMeta}>
           {copied ? "Copied ✓" : "Copy Link ✒️"}
         </button>
+        {kioskAction ? (
+          <Link
+            href={kioskAction.href}
+            className="button button-blue"
+            target={kioskAction.external ? "_blank" : undefined}
+            rel={kioskAction.external ? "noopener noreferrer" : undefined}
+          >
+            {kioskAction.label}
+          </Link>
+        ) : null}
       </div>
 
       {tunnelUrl ? (
