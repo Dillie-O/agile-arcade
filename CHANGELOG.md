@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.8] - 2026-05-27
+
+### Changed
+The separate kiosk row was removed; kiosk open/exit actions now appear inline in the top link bar next to the copy button.
+Kiosk view now shows a disabled coffee card with "Voting..." while votes are in progress, then displays results when revealed.
+
+---
+
 ## [1.2.7] - 2026-05-27
 
 ### Added
