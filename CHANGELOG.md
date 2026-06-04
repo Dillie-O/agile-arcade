@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.9] - 2026-06-04
+
+### Fixed
+Kiosk mode could falsely report "already active" when the previous kiosk socket had disconnected uncleanly (e.g. tab closed abruptly or browser reconnect). The server now verifies that the registered kiosk socket is still connected before rejecting a new viewer; stale entries are cleared automatically.
+
+---
+
 ## [1.2.8] - 2026-05-27
 
 ### Changed

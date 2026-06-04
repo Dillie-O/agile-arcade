@@ -197,8 +197,13 @@ app.prepare().then(() => {
 
       const existingKioskId = kioskSockets.get(roomId);
       if (existingKioskId && existingKioskId !== socket.id) {
-        socket.emit("kiosk_occupied");
-        return;
+        const existingSocket = io.sockets.sockets.get(existingKioskId);
+        if (existingSocket?.connected) {
+          socket.emit("kiosk_occupied");
+          return;
+        }
+        // Stale entry — the previous kiosk socket is no longer connected; clean it up.
+        kioskSockets.delete(roomId);
       }
 
       if (socket.data.viewerRoomId && socket.data.viewerRoomId !== roomId) {
