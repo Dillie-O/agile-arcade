@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.0] - 2026-06-22
+
+### Added
+The app is now installable as a Progressive Web App on both Chrome and Safari. Users can add it to their home screen from any page — the installed app always opens at the root, not the game URL they happened to install from.
+
+A "Share Game" button replaces the old inline copy controls in the room info bar. Clicking it opens a modal showing a scannable QR code, the full game URL, and a "Copy Link" button — making it easy for mobile players to join by scanning rather than typing.
+
+---
+
 ## [1.2.9] - 2026-06-04
 
 ### Fixed

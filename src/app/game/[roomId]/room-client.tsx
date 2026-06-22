@@ -289,7 +289,7 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
   const kioskAction = isKiosk
     ? { href: `/game/${roomId}`, label: "Exit Kiosk Mode ✕" }
     : identity
-      ? { href: kioskHref, label: "Open Kiosk View ↗", external: true }
+      ? { href: kioskHref, label: "Kiosk Mode ↗", external: true }
       : undefined;
 
   const onStartTimer = (duration: number) => {
