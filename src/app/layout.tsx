@@ -1,9 +1,26 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { SwRegister } from "@/components/SwRegister";
+
+export const viewport: Viewport = {
+  themeColor: "#17488f",
+};
 
 export const metadata: Metadata = {
   title: "Agile Arcade",
   description: "Where story points get extra lives",
+  appleWebApp: {
+    capable: true,
+    title: "Agile Arcade",
+    statusBarStyle: "default",
+  },
+  other: {
+    // Next.js appleWebApp only emits mobile-web-app-capable; Safari needs this one too
+    "apple-mobile-web-app-capable": "yes",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({
@@ -14,9 +31,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <SwRegister />
         {children}
         <footer className="site-footer">
-          <span className="site-footer__link">Ver. 1.2.9 (2026-06-04)&nbsp;|&nbsp;</span>
+          <span className="site-footer__link">Ver. 1.3.0 (2026-06-22)&nbsp;|&nbsp;</span>
           <a
             href="https://github.com/Dillie-O/agile-arcade"
             target="_blank"
