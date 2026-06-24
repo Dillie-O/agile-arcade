@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1] - 2026-06-24
+
+### Changed
+Participant status labels replaced with emoji indicators: ⏳ for waiting, ✅ for voted. The full name is now always visible without truncation.
+The host's remove-participant control moved from a right-side floating button to the participant's avatar slot — hovering the avatar reveals a ❌ icon that can be clicked to remove the player.
+
+---
+
 ## [1.3.0] - 2026-06-22
 
 ### Added

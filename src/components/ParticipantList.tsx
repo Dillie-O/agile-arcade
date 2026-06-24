@@ -14,38 +14,41 @@ export function ParticipantList({ participants, revealed, myId, isHost, onRemove
       {participants.map((participant) => {
         const isMe = participant.id === myId;
         const canRemove = isHost && !isMe && Boolean(onRemoveParticipant);
-        const stateLabel = participant.hasVoted || participant.vote ? "Ready!" : "Waiting...";
-        const displayStatus = revealed && participant.vote ? `${stateLabel} ${participant.vote}` : stateLabel;
+        const hasVoted = participant.hasVoted || Boolean(participant.vote);
+        const stateEmoji = hasVoted ? "✅" : "⏳";
+        const displayStatus = revealed && participant.vote ? participant.vote : stateEmoji;
         const emojiClass = participant.isHost
           ? "participant-emoji participant-emoji--host"
           : isMe
           ? "participant-emoji participant-emoji--me"
           : "participant-emoji";
 
+        const emojiSlot = canRemove ? (
+          <button
+            className={`${emojiClass} participant-emoji-remove`}
+            type="button"
+            onClick={() => onRemoveParticipant?.(participant)}
+            aria-label={`Remove ${participant.name} from room`}
+            title={`Remove ${participant.name} from room`}
+          >
+            <span className="participant-emoji-icon" aria-hidden="true">{participant.emoji}</span>
+            <span className="participant-emoji-trash" aria-hidden="true">❌</span>
+          </button>
+        ) : (
+          <span className={emojiClass}>{participant.emoji}</span>
+        );
+
         return (
           <li className="participant-row" key={participant.id}>
             <div className="participant-main">
-              <span className={emojiClass}>{participant.emoji}</span>
+              {emojiSlot}
               <span className="participant-name">{participant.name}</span>
               <strong
-                className={`participant-status ${stateLabel === "Ready!" ? "status-ready" : "status-waiting"}`}
+                className={`participant-status ${hasVoted ? "status-ready" : "status-waiting"}`}
               >
                 {displayStatus}
               </strong>
             </div>
-            {canRemove ? (
-              <button
-                className="button button-danger participant-remove-btn"
-                type="button"
-                onClick={() => onRemoveParticipant?.(participant)}
-                aria-label={`Remove ${participant.name} from room`}
-                title={`Remove ${participant.name} from room`}
-              >
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M6 1h4l1 1h3v2H2V2h3l1-1zm-2 5h8l-.7 8.1A2 2 0 0 1 9.31 16H6.69a2 2 0 0 1-1.99-1.9L4 6zm2 2v6h2V8H6zm4 0v6h2V8h-2z" />
-                </svg>
-              </button>
-            ) : null}
           </li>
         );
       })}

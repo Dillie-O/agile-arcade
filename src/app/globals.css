@@ -358,9 +358,6 @@ p {
   min-width: 0;
 }
 
-.participant-row:has(.participant-remove-btn) .participant-main {
-  padding-right: 2.2rem;
-}
 
 .participant-emoji {
   grid-area: emoji;
@@ -405,7 +402,7 @@ p {
 .participant-status {
   grid-area: status;
   justify-self: end;
-  font-size: 0.85rem;
+  font-size: 1rem;
   white-space: nowrap;
 }
 
@@ -424,33 +421,41 @@ p {
   color: #fffdf1;
 }
 
-.participant-remove-btn {
-  position: absolute;
-  top: 50%;
-  right: 0.5rem;
-  transform: translateY(-50%);
+.participant-emoji-remove {
+  grid-area: emoji;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.2rem 0.35rem;
-  min-width: 1.8rem;
-  min-height: 1.8rem;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 4px;
   line-height: 1;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 120ms ease;
 }
 
-.participant-row:hover .participant-remove-btn,
-.participant-row:focus-within .participant-remove-btn {
-  opacity: 1;
-  pointer-events: auto;
+.participant-emoji-remove .participant-emoji-trash {
+  display: none;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.participant-emoji-remove:hover .participant-emoji-icon,
+.participant-emoji-remove:focus-visible .participant-emoji-icon {
+  display: none;
+}
+
+.participant-emoji-remove:hover .participant-emoji-trash,
+.participant-emoji-remove:focus-visible .participant-emoji-trash {
+  display: block;
 }
 
 @media (hover: none) {
-  .participant-remove-btn {
-    opacity: 1;
-    pointer-events: auto;
+  .participant-emoji-remove .participant-emoji-icon {
+    display: none;
+  }
+  .participant-emoji-remove .participant-emoji-trash {
+    display: block;
   }
 }
 
