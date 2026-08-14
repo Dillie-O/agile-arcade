@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.4.0] - 2026-08-14
+
+### Added
+A "Pick Your Own" button in the join modal opens an avatar picker, so players can choose a favorite icon instead of relying on the random roll. Icons are grouped into Arcade, Creatures, Cosmic, Fantasy, and Snacks sections, and the current selection is highlighted.
+
+### Changed
+The avatar icon set expanded from 16 to 74 options, so larger groups are far less likely to end up with duplicate avatars. Random rolls draw from the full set.
+
+---
+
 ## [1.3.1] - 2026-06-24
 
 ### Changed

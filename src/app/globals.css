@@ -780,6 +780,60 @@ p {
   font-size: 2rem;
 }
 
+.emoji-picker {
+  display: grid;
+  gap: 0.7rem;
+  max-height: 15rem;
+  overflow-y: auto;
+  padding: 0.6rem;
+  border: 2px solid var(--border-soft);
+  border-radius: 6px;
+  background: rgba(255, 247, 223, 0.6);
+}
+
+.emoji-picker-group {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.emoji-picker-heading {
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  color: var(--fg-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.emoji-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(2.6rem, 1fr));
+  gap: 0.3rem;
+}
+
+.emoji-option {
+  appearance: none;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg-text);
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0.3rem 0;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease;
+}
+
+.emoji-option:hover,
+.emoji-option:focus-visible {
+  background: rgba(212, 175, 55, 0.18);
+  transform: translateY(-1px);
+}
+
+.emoji-option.selected {
+  border-color: var(--accent-gold);
+  background: rgba(212, 175, 55, 0.3);
+}
+
 .error-text {
   color: var(--accent-red);
   font-weight: 700;
