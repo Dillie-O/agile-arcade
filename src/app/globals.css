@@ -929,16 +929,37 @@ p {
 }
 
 .unanimous-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem 0.45rem;
   border: 2px solid var(--accent-gold);
   border-radius: 6px;
   background: rgba(212, 175, 55, 0.22);
   color: var(--fg-text);
-  font-family: var(--font-heading);
-  font-size: 0.8rem;
-  letter-spacing: 0.06em;
   padding: 0.45rem 0.75rem;
   text-align: center;
   animation: unanimous-pop 400ms ease-out;
+}
+
+.unanimous-poppers {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.unanimous-term {
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+  color: var(--fg-text-soft);
+}
+
+.unanimous-term--english {
+  font-size: 0.95rem;
+  color: var(--fg-text);
+  text-shadow: 0 1px 0 rgba(255, 247, 223, 0.8);
 }
 
 @keyframes unanimous-pop {

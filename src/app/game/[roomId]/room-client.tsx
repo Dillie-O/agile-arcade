@@ -14,6 +14,7 @@ import { ParticipantList } from "@/components/ParticipantList";
 import { ResultsSummary } from "@/components/ResultsSummary";
 import { NgrokPanel } from "@/components/NgrokPanel";
 import { StatusBar } from "@/components/StatusBar";
+import { UnanimousBanner } from "@/components/UnanimousBanner";
 import { randomEmoji } from "@/lib/constants";
 import { Identity, Participant, Room } from "@/lib/types";
 
@@ -527,11 +528,7 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
               ) : null}
             </div>
 
-            {celebrationSeed !== null ? (
-              <div className="unanimous-banner" role="status">
-                🎉 Unanimous! 🎉
-              </div>
-            ) : null}
+            {celebrationSeed !== null ? <UnanimousBanner seed={celebrationSeed} /> : null}
 
             <ResultsSummary
               participants={room?.participants ?? []}
