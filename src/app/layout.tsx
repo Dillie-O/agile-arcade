@@ -34,7 +34,7 @@ export default function RootLayout({
         <SwRegister />
         {children}
         <footer className="site-footer">
-          <span className="site-footer__link">Ver. 1.4.0 (2026-08-14)&nbsp;|&nbsp;</span>
+          <span className="site-footer__link">Ver. 1.5.0 (2026-08-18)&nbsp;|&nbsp;</span>
           <a
             href="https://github.com/Dillie-O/agile-arcade"
             target="_blank"

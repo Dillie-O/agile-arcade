@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.5.0] - 2026-08-18
+
+### Added
+When the players agree on a card, a burst of confetti falls across the screen and a banner appears above the results reading 🎉🎉 unánime 🎉 Unanimous 🎉 一致同意 🎉🎉 — the word in English flanked by two of 41 other languages, drawn at random each time (hover a word to see which language it is). It fires whenever everyone who put an estimate on the table picked the same card, so stragglers and ghost players who never voted cannot spoil it; ☕ and ? count as sitting the round out rather than as disagreement. The celebration shows on player screens and in kiosk mode, clears when the next round starts, and is skipped for anyone who prefers reduced motion.
+
+Players can now change their avatar mid-game: hovering your own icon in the participant list reveals a pencil badge, and clicking it opens the same avatar picker used when joining. The host keeps the hover-to-remove ❌ on everyone else's icon, and can still change their own.
+
+---
+
 ## [1.4.0] - 2026-08-14
 
 ### Added
