@@ -37,6 +37,14 @@ function toSafeHttpUrl(value) {
   return null;
 }
 
+// Mirror of ABSTAIN_VOTES / isUnanimousRound from src/lib/constants.ts
+const ABSTAIN_VOTES = ["☕", "?"];
+
+function isUnanimousRound(votes) {
+  const estimates = votes.filter((vote) => Boolean(vote) && !ABSTAIN_VOTES.includes(vote));
+  return estimates.length > 1 && new Set(estimates).size === 1;
+}
+
 // ─── rooms.js ────────────────────────────────────────────────────────────────
 
 describe("createRoom", () => {
@@ -444,5 +452,46 @@ describe("toSafeHttpUrl (URL safety)", () => {
 
   it("rejects file: protocol", () => {
     assert.equal(toSafeHttpUrl("file:///etc/passwd"), null);
+  });
+});
+
+
+describe("isUnanimousRound (celebration rule)", () => {
+  it("celebrates when every estimate matches", () => {
+    assert.equal(isUnanimousRound(["8", "8", "8"]), true);
+  });
+
+  it("does not celebrate on a split vote", () => {
+    assert.equal(isUnanimousRound(["8", "8", "13"]), false);
+  });
+
+  it("celebrates when only some players voted", () => {
+    assert.equal(isUnanimousRound(["5", undefined, "5", undefined]), true);
+  });
+
+  it("ignores coffee voters when judging agreement", () => {
+    assert.equal(isUnanimousRound(["3", "☕", "3"]), true);
+  });
+
+  it("ignores question-mark voters when judging agreement", () => {
+    assert.equal(isUnanimousRound(["M", "?", "M"]), true);
+  });
+
+  it("does not celebrate when everyone abstained", () => {
+    assert.equal(isUnanimousRound(["☕", "☕", "☕"]), false);
+  });
+
+  it("does not celebrate a lone estimate", () => {
+    assert.equal(isUnanimousRound(["8"]), false);
+    assert.equal(isUnanimousRound(["8", "☕", undefined]), false);
+  });
+
+  it("does not celebrate an empty round", () => {
+    assert.equal(isUnanimousRound([]), false);
+    assert.equal(isUnanimousRound([undefined, undefined]), false);
+  });
+
+  it("treats differing abstain-only rounds as no celebration", () => {
+    assert.equal(isUnanimousRound(["☕", "?"]), false);
   });
 });

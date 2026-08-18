@@ -5,6 +5,21 @@ export const DECKS: Record<DeckType, string[]> = {
   tshirt: ["XS", "S", "M", "L", "XL", "☕"],
 };
 
+// Cards that abstain instead of estimating. They neither create nor block a
+// unanimous result — a coffee voter is sitting the round out, not disagreeing.
+export const ABSTAIN_VOTES = ["☕", "?"];
+
+// A room is unanimous when at least two people put a real estimate on the table
+// and those estimates all match. Players who never voted (or who left without
+// the room noticing) simply do not count.
+export const isUnanimousRound = (votes: (string | undefined)[]): boolean => {
+  const estimates = votes.filter(
+    (vote): vote is string => typeof vote === "string" && vote !== "" && !ABSTAIN_VOTES.includes(vote),
+  );
+
+  return estimates.length > 1 && new Set(estimates).size === 1;
+};
+
 export type EmojiCategory = {
   label: string;
   emojis: string[];

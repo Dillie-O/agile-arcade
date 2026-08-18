@@ -15,7 +15,7 @@ import { ResultsSummary } from "@/components/ResultsSummary";
 import { NgrokPanel } from "@/components/NgrokPanel";
 import { StatusBar } from "@/components/StatusBar";
 import { UnanimousBanner } from "@/components/UnanimousBanner";
-import { randomEmoji } from "@/lib/constants";
+import { isUnanimousRound, randomEmoji } from "@/lib/constants";
 import { Identity, Participant, Room } from "@/lib/types";
 
 type Props = {
@@ -279,7 +279,7 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
     };
   }, [room?.timerEndsAt, room?.revealed]);
 
-  // Celebrate a clean sweep: every player voted and every vote matched.
+  // Celebrate when everyone who put an estimate on the table picked the same one.
   useEffect(() => {
     const revealed = Boolean(room?.revealed);
     const wasRevealed = prevRevealedRef.current;
@@ -300,12 +300,7 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
       return;
     }
 
-    const participants = room?.participants ?? [];
-    const votes = participants.map((p) => p.vote).filter(Boolean) as string[];
-    const isUnanimous =
-      participants.length > 1 && votes.length === participants.length && new Set(votes).size === 1;
-
-    if (!isUnanimous) {
+    if (!isUnanimousRound((room?.participants ?? []).map((p) => p.vote))) {
       return;
     }
 
