@@ -4,7 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { io, Socket } from "socket.io-client";
+import { AvatarModal } from "@/components/AvatarModal";
 import { CardDeck } from "@/components/CardDeck";
+import { Confetti } from "@/components/Confetti";
 import { Controls } from "@/components/Controls";
 import { JoinModal } from "@/components/JoinModal";
 import { LayoutShell } from "@/components/LayoutShell";
@@ -21,6 +23,8 @@ type Props = {
 };
 
 const getIdentityKey = (roomId: string) => `agile-arcade:${roomId}:identity`;
+
+const CELEBRATION_MS = 5000;
 
 const toSafeHttpUrl = (value: string | null | undefined): string | null => {
   if (!value) return null;
@@ -60,15 +64,31 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
   const [timerDisplay, setTimerDisplay] = useState<number | null>(null);
   const [wasRemovedFromRoom, setWasRemovedFromRoom] = useState(false);
   const [kioskOccupied, setKioskOccupied] = useState(false);
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [celebrationSeed, setCelebrationSeed] = useState<number | null>(null);
   const prevIsHostRef = useRef(false);
+  const identityRef = useRef<Identity | null>(null);
+  const celebrationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevRevealedRef = useRef(false);
 
   useEffect(() => {
     return () => {
       if (hostNoticeTimerRef.current) clearTimeout(hostNoticeTimerRef.current);
       if (storyDebounceRef.current) clearTimeout(storyDebounceRef.current);
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      if (celebrationTimerRef.current) clearTimeout(celebrationTimerRef.current);
     };
   }, []);
+
+  // Keep the latest identity available to the socket effect without re-creating
+  // the connection when only the avatar changes.
+  useEffect(() => {
+    identityRef.current = identity;
+  }, [identity]);
+
+  // Identity changes that only swap the avatar must not tear down the socket,
+  // so the connection is keyed on the stable participant id.
+  const identityKey = identity?.participantId ?? null;
 
   useEffect(() => {
     if (isKiosk) {
@@ -140,7 +160,7 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
   }, [isKiosk, roomId]);
 
   useEffect(() => {
-    if (isKiosk || !identity) {
+    if (isKiosk || !identityKey) {
       return;
     }
 
@@ -148,17 +168,21 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
     socketRef.current = socket;
 
     const emitJoin = () => {
+      const current = identityRef.current;
+      if (!current) {
+        return;
+      }
       socket.emit("join_room", {
         roomId,
-        name: identity.name,
-        emoji: identity.emoji,
-        participantId: identity.participantId,
+        name: current.name,
+        emoji: current.emoji,
+        participantId: current.participantId,
       });
     };
 
     socket.on("connect", () => {
       setIsConnected(true);
-      const id = identity.participantId ?? socket.id ?? null;
+      const id = identityRef.current?.participantId ?? socket.id ?? null;
       myIdRef.current = id;
       setMyId(id);
       emitJoin();
@@ -222,7 +246,7 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
         hostNoticeTimerRef.current = null;
       }
     };
-  }, [identity, isKiosk, roomId]);
+  }, [identityKey, isKiosk, roomId]);
 
   useEffect(() => {
     const timerEndsAt = room?.timerEndsAt ?? null;
@@ -254,6 +278,41 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
     };
   }, [room?.timerEndsAt, room?.revealed]);
 
+  // Celebrate a clean sweep: every player voted and every vote matched.
+  useEffect(() => {
+    const revealed = Boolean(room?.revealed);
+    const wasRevealed = prevRevealedRef.current;
+    prevRevealedRef.current = revealed;
+
+    if (!revealed) {
+      // A new round wipes any celebration still on screen.
+      if (celebrationTimerRef.current) {
+        clearTimeout(celebrationTimerRef.current);
+        celebrationTimerRef.current = null;
+      }
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: reacting to a round reset pushed by the server
+      setCelebrationSeed(null);
+      return;
+    }
+
+    if (wasRevealed) {
+      return;
+    }
+
+    const participants = room?.participants ?? [];
+    const votes = participants.map((p) => p.vote).filter(Boolean) as string[];
+    const isUnanimous =
+      participants.length > 1 && votes.length === participants.length && new Set(votes).size === 1;
+
+    if (!isUnanimous) {
+      return;
+    }
+
+    if (celebrationTimerRef.current) clearTimeout(celebrationTimerRef.current);
+    setCelebrationSeed(Date.now());
+    celebrationTimerRef.current = setTimeout(() => setCelebrationSeed(null), CELEBRATION_MS);
+  }, [room]);
+
   const me = useMemo(() => {
     if (!room || !myId) {
       return null;
@@ -267,6 +326,17 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
     localStorage.setItem(getIdentityKey(roomId), JSON.stringify(identityWithId));
     setWasRemovedFromRoom(false);
     setIdentity(identityWithId);
+  };
+
+  const onSelectAvatar = (emoji: string) => {
+    if (!identity) {
+      return;
+    }
+
+    const nextIdentity = { ...identity, emoji };
+    localStorage.setItem(getIdentityKey(roomId), JSON.stringify(nextIdentity));
+    setIdentity(nextIdentity);
+    socketRef.current?.emit("change_emoji", { roomId, emoji });
   };
 
   const onCastVote = (value: string) => {
@@ -372,6 +442,18 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
         />
       ) : null}
 
+      {!isKiosk && identity ? (
+        <AvatarModal
+          isOpen={isAvatarModalOpen}
+          currentEmoji={me?.emoji ?? identity.emoji}
+          onSelect={onSelectAvatar}
+          onRandomize={randomEmoji}
+          onClose={() => setIsAvatarModalOpen(false)}
+        />
+      ) : null}
+
+      {celebrationSeed !== null ? <Confetti seed={celebrationSeed} /> : null}
+
       <main className="room-layout">
         <header className="panel app-header room-header">
           <Image src="/logo_banner.webp" alt="Agile Arcade" className="banner-img" width={640} height={120} priority />
@@ -408,6 +490,7 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
               myId={myId}
               isHost={isHost}
               onRemoveParticipant={onRemoveParticipant}
+              onChangeAvatar={!isKiosk && me ? () => setIsAvatarModalOpen(true) : undefined}
             />
           </section>
 
@@ -443,6 +526,12 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
                 </a>
               ) : null}
             </div>
+
+            {celebrationSeed !== null ? (
+              <div className="unanimous-banner" role="status">
+                🎉 Unanimous! 🎉
+              </div>
+            ) : null}
 
             <ResultsSummary
               participants={room?.participants ?? []}

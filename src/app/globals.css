@@ -459,6 +459,55 @@ p {
   }
 }
 
+.participant-emoji-edit {
+  grid-area: emoji;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.participant-emoji-edit .participant-emoji-pencil {
+  position: absolute;
+  right: -0.4rem;
+  bottom: -0.35rem;
+  display: grid;
+  place-items: center;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  border: 1px solid var(--border-soft);
+  background: var(--bg-parchment);
+  box-shadow: 0 1px 2px rgba(92, 59, 30, 0.3);
+  font-size: 0.6rem;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  pointer-events: none;
+}
+
+.participant-emoji-edit:hover .participant-emoji-icon,
+.participant-emoji-edit:focus-visible .participant-emoji-icon {
+  filter: brightness(1.15);
+}
+
+.participant-emoji-edit:hover .participant-emoji-pencil,
+.participant-emoji-edit:focus-visible .participant-emoji-pencil {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .participant-emoji-edit .participant-emoji-pencil {
+    opacity: 1;
+  }
+}
+
 .story-row {
   display: flex;
   flex-wrap: wrap;
@@ -843,6 +892,78 @@ p {
   width: min(var(--max-width-content), 100%);
   display: grid;
   gap: 0.75rem;
+}
+
+.confetti-layer {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -8vh;
+  border-radius: 1px;
+  opacity: 0.95;
+  animation-name: confetti-fall;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+  animation-iteration-count: 1;
+}
+
+.confetti-piece--round {
+  border-radius: 50%;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--confetti-drift, 0), 112vh, 0) rotate(var(--confetti-spin, 540deg));
+    opacity: 0.85;
+  }
+}
+
+.unanimous-banner {
+  border: 2px solid var(--accent-gold);
+  border-radius: 6px;
+  background: rgba(212, 175, 55, 0.22);
+  color: var(--fg-text);
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  padding: 0.45rem 0.75rem;
+  text-align: center;
+  animation: unanimous-pop 400ms ease-out;
+}
+
+@keyframes unanimous-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confetti-layer {
+    display: none;
+  }
+
+  .unanimous-banner {
+    animation: none;
+  }
 }
 
 @media (max-width: 960px) {

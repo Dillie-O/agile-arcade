@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { EMOJI_CATEGORIES } from "@/lib/constants";
+import { AvatarPicker } from "@/components/AvatarPicker";
 import { Identity } from "@/lib/types";
 
 type Props = {
@@ -75,29 +75,7 @@ export function JoinModal({ isOpen, onSubmit, onRandomizeEmoji }: Props) {
           </button>
         </div>
 
-        {isPickerOpen ? (
-          <div id="emoji-picker" className="emoji-picker" role="group" aria-label="Choose an avatar">
-            {EMOJI_CATEGORIES.map((category) => (
-              <div className="emoji-picker-group" key={category.label}>
-                <span className="emoji-picker-heading">{category.label}</span>
-                <div className="emoji-picker-grid">
-                  {category.emojis.map((option) => (
-                    <button
-                      key={`${category.label}-${option}`}
-                      className={`emoji-option${option === emoji ? " selected" : ""}`}
-                      type="button"
-                      onClick={() => handlePick(option)}
-                      aria-label={`${category.label} avatar ${option}`}
-                      aria-pressed={option === emoji}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : null}
+        {isPickerOpen ? <AvatarPicker selected={emoji} onSelect={handlePick} /> : null}
 
         <button className="button" type="submit">
           Enter Room

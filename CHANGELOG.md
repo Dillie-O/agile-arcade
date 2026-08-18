@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.5.0] - 2026-08-18
+
+### Added
+When every player votes the same card, a burst of confetti falls across the screen and a "Unanimous!" banner appears above the results. The celebration shows on player screens and in kiosk mode, clears when the next round starts, and is skipped for anyone who prefers reduced motion.
+
+Players can now change their avatar mid-game: hovering your own icon in the participant list reveals a pencil badge, and clicking it opens the same avatar picker used when joining. The host keeps the hover-to-remove ❌ on everyone else's icon, and can still change their own.
+
+---
+
 ## [1.4.0] - 2026-08-14
 
 ### Added
