@@ -16,6 +16,7 @@ import { NgrokPanel } from "@/components/NgrokPanel";
 import { StatusBar } from "@/components/StatusBar";
 import { UnanimousBanner } from "@/components/UnanimousBanner";
 import { isUnanimousRound, randomEmoji } from "@/lib/constants";
+import { tip } from "@/lib/tooltip";
 import { Identity, Participant, Room } from "@/lib/types";
 
 type Props = {
@@ -353,9 +354,18 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
   const safeStoryUrl = toSafeHttpUrl(storyDraft ?? room?.story ?? "");
   const kioskHref = `/game/${roomId}/kiosk`;
   const kioskAction = isKiosk
-    ? { href: `/game/${roomId}`, label: "Exit Kiosk Mode ✕" }
+    ? {
+        href: `/game/${roomId}`,
+        label: "Exit Kiosk Mode ✕",
+        hint: "Back to the room, with your cards and controls",
+      }
     : identity
-      ? { href: kioskHref, label: "Kiosk Mode ↗", external: true }
+      ? {
+          href: kioskHref,
+          label: "Kiosk Mode ↗",
+          hint: "A big-screen view of the room for sharing, without cards or controls",
+          external: true,
+        }
       : undefined;
 
   const onStartTimer = (duration: number) => {
@@ -516,7 +526,8 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="button story-link-btn"
-                  title="Open link"
+                  aria-label="Open the story link in a new tab"
+                  {...tip("Open the story link in a new tab")}
                 >
                   ↗
                 </a>

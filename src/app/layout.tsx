@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import Link from "next/link";
 import "./globals.css";
 import { SwRegister } from "@/components/SwRegister";
+import { AppTooltip } from "@/components/Tooltip";
+import { LATEST_RELEASE } from "@/lib/releases";
+import { tip } from "@/lib/tooltip";
 
 export const viewport: Viewport = {
   themeColor: "#17488f",
@@ -34,7 +38,14 @@ export default function RootLayout({
         <SwRegister />
         {children}
         <footer className="site-footer">
-          <span className="site-footer__link">Ver. 1.5.0 (2026-08-18)&nbsp;|&nbsp;</span>
+          <Link
+            href="/changelog"
+            className="site-footer__link site-footer__version"
+            {...tip("See what's new")}
+          >
+            Ver. {LATEST_RELEASE.version} ({LATEST_RELEASE.date})
+          </Link>
+          <span className="site-footer__link">&nbsp;|&nbsp;</span>
           <a
             href="https://github.com/Dillie-O/agile-arcade"
             target="_blank"
@@ -53,6 +64,7 @@ export default function RootLayout({
             Contribute on GitHub
           </a>
         </footer>
+        <AppTooltip />
       </body>
     </html>
   );

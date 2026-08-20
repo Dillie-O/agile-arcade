@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { ENGLISH_UNANIMOUS_TERM, UnanimousTerm, pickUnanimousTerms } from "@/lib/constants";
+import { tip } from "@/lib/tooltip";
 
 type Props = {
   /** Changing the seed draws a new pair of languages. */
@@ -9,12 +10,13 @@ type Props = {
 };
 
 // The language name stays in the tooltip rather than on the line — available if
-// anyone is curious, out of the way if not.
+// anyone is curious, out of the way if not. The banner's aria-label carries the
+// same information for screen readers.
 const Term = ({ term, isEnglish = false }: { term: UnanimousTerm; isEnglish?: boolean }) => (
   <span
     className={`unanimous-term${isEnglish ? " unanimous-term--english" : ""}`}
     dir="auto"
-    title={`"Unanimous" in ${term.language}`}
+    {...tip(`"Unanimous" in ${term.language}`)}
   >
     {term.word}
   </span>

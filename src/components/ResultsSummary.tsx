@@ -1,4 +1,5 @@
 import { DECKS } from "@/lib/constants";
+import { tip } from "@/lib/tooltip";
 import { DeckType, Participant } from "@/lib/types";
 
 type Props = {
@@ -64,12 +65,16 @@ export function ResultsSummary({ participants, revealed, deckType }: Props) {
   const renderWinner = (value: string, count: number) => {
     const pct = Math.round((count / votes.length) * 100);
     const voters = (votersByValue[value] ?? []).join(", ");
+    const voterLabel = voters ? `Chosen by ${voters}` : "";
     return (
       <div key={value} className="result-center">
-        <div className={`result-card card ${cardTone(value)}`} title={voters}>{value}</div>
+        <div className={`result-card card ${cardTone(value)}`} {...tip(voterLabel)}>
+          {value}
+          {voterLabel ? <span className="sr-only">{voterLabel}</span> : null}
+        </div>
         <p
           className="alignment-label"
-          title={`${pct}% of voters chose this value (alignment)`}
+          {...tip(`${pct}% of voters chose this value (alignment)`)}
         >
           <span className="alignment-pct">{pct}%</span>
         </p>
@@ -80,12 +85,16 @@ export function ResultsSummary({ participants, revealed, deckType }: Props) {
   const renderMinor = (value: string, count: number) => {
     const pct = Math.round((count / votes.length) * 100);
     const voters = (votersByValue[value] ?? []).join(", ");
+    const voterLabel = voters ? `Chosen by ${voters}` : "";
     return (
       <div key={value} className="result-minor">
-        <div className={`result-card-minor card ${cardTone(value)}`} title={voters}>{value}</div>
+        <div className={`result-card-minor card ${cardTone(value)}`} {...tip(voterLabel)}>
+          {value}
+          {voterLabel ? <span className="sr-only">{voterLabel}</span> : null}
+        </div>
         <p
           className="alignment-label alignment-label-minor"
-          title={`${pct}% of voters chose this value`}
+          {...tip(`${pct}% of voters chose this value`)}
         >
           <span className="alignment-pct alignment-pct-minor">{pct}%</span>
         </p>

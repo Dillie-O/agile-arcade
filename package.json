@@ -1,6 +1,6 @@
 {
   "name": "agile-arcade",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "private": true,
   "scripts": {
     "dev": "NODE_ENV=development node server.js",
@@ -16,6 +16,7 @@
     "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-tooltip": "^6.0.8",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3"
   },

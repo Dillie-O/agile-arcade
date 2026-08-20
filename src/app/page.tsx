@@ -5,7 +5,11 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DeckType } from "@/lib/types";
 import { LayoutShell } from "@/components/LayoutShell";
+import { DECKS } from "@/lib/constants";
+import { tip } from "@/lib/tooltip";
 import styles from "./page.module.css";
+
+const deckTip = (deckType: DeckType) => tip(`Cards: ${DECKS[deckType].join("  ")}`);
 
 export default function Home() {
   const router = useRouter();
@@ -58,6 +62,7 @@ export default function Home() {
               onClick={() => onCreateGame("fibonacci")}
               disabled={pendingDeck !== null}
               type="button"
+              {...deckTip("fibonacci")}
             >
               <span className={styles.avatar} aria-hidden="true">
                 🧙
@@ -75,6 +80,7 @@ export default function Home() {
               onClick={() => onCreateGame("tshirt")}
               disabled={pendingDeck !== null}
               type="button"
+              {...deckTip("tshirt")}
             >
               <span className={styles.avatar} aria-hidden="true">
                 🧝
