@@ -1141,33 +1141,29 @@ p {
 }
 
 /* ── Changelog ───────────────────────────────────────────────────────── */
-.changelog-lore {
+.changelog-section {
   display: grid;
   gap: 0.5rem;
-  justify-items: center;
-  text-align: center;
 }
 
-/* Centred within the panel, but the prose itself reads left-aligned. */
+/* Small uppercase label that opens each section of the page. */
+.eyebrow {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-text-muted);
+}
+
 .lore-paragraph {
-  max-width: 62ch;
-  text-align: left;
+  max-width: 68ch;
   color: var(--fg-text-soft);
-}
-
-.changelog-releases {
-  display: grid;
-  gap: 0.4rem;
-}
-
-.changelog-heading,
-.changelog-subheading {
-  text-align: center;
 }
 
 .changelog-list {
   list-style: none;
-  margin: 0.35rem 0 0;
+  margin: 0.1rem 0 0;
   padding: 0;
   display: grid;
   gap: 0.75rem;
@@ -1175,19 +1171,40 @@ p {
 
 .release-card {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.15rem;
 }
 
-.release-head {
+.release-headline {
+  margin: 0;
+  font-size: 1.15rem;
+  color: var(--fg-text);
+}
+
+.release-emoji {
+  /* Keeps the emoji on the headline's baseline across platforms. */
+  font-family: var(--font-body);
+}
+
+/* "1.6.0 · August 20, 2026", sitting under the headline as quiet metadata. */
+.release-meta {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
   flex-wrap: wrap;
+  margin: 0 0 0.35rem;
+  font-size: 0.9rem;
+  color: var(--fg-text-muted);
+}
+
+/* Version, separator and date travel together so narrow screens never strand
+   the "·" on a line of its own. */
+.release-stamp {
+  white-space: nowrap;
 }
 
 .release-version {
   font-family: var(--font-heading);
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   color: var(--accent-red);
   text-shadow: 1px 1px 0 #ffe6a6;
 }
@@ -1202,32 +1219,15 @@ p {
   border: 2px solid var(--accent-gold);
   border-radius: 999px;
   padding: 0.15rem 0.5rem;
-}
-
-.release-date {
-  margin-left: auto;
-  font-size: 0.9rem;
-  color: var(--fg-text-muted);
-}
-
-.release-headline {
-  margin: 0;
-  font-size: 1.15rem;
-  color: var(--fg-text);
-}
-
-.release-summary {
-  margin: 0;
-  color: var(--fg-text);
-  font-style: italic;
+  margin-left: 0.15rem;
 }
 
 .release-notes {
   list-style: none;
-  margin: 0.2rem 0 0;
+  margin: 0;
   padding: 0;
   display: grid;
-  gap: 0.25rem;
+  gap: 0.3rem;
 }
 
 .release-note {
@@ -1237,9 +1237,9 @@ p {
 }
 
 .release-note::before {
-  content: "▸";
+  content: "•";
   position: absolute;
-  left: 0;
+  left: 0.2rem;
   color: var(--accent-gold);
 }
 

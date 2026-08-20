@@ -24,9 +24,8 @@ export default function ChangelogPage() {
           />
         </header>
 
-        <section className="panel nested-panel changelog-lore">
-          <p className="tagline">The lore</p>
-          <h1 className="title">Why This Exists</h1>
+        <section className="changelog-section">
+          <h1 className="eyebrow">The Lore</h1>
           {LORE.map((paragraph) => (
             <p className="lore-paragraph" key={paragraph}>
               {paragraph}
@@ -34,20 +33,26 @@ export default function ChangelogPage() {
           ))}
         </section>
 
-        <section className="changelog-releases">
-          <h2 className="section-heading changelog-heading">What&apos;s New</h2>
-          <p className="helper-text changelog-subheading">Every update in plain language, newest first.</p>
+        <section className="changelog-section">
+          <h2 className="eyebrow">What&apos;s New</h2>
 
           <ol className="changelog-list">
             {RELEASES.map((release, index) => (
               <li className="panel nested-panel release-card" key={release.version}>
-                <div className="release-head">
-                  <span className="release-version">v{release.version}</span>
+                <h3 className="release-headline">
+                  {release.headline}{" "}
+                  <span className="release-emoji" aria-hidden="true">
+                    {release.emoji}
+                  </span>
+                </h3>
+                <p className="release-meta">
+                  <span className="release-stamp">
+                    <span className="release-version">{release.version}</span>
+                    <span aria-hidden="true"> · </span>
+                    <span className="release-date">{formatReleaseDate(release.date)}</span>
+                  </span>
                   {index === 0 ? <span className="release-latest">Latest</span> : null}
-                  <span className="release-date">{formatReleaseDate(release.date)}</span>
-                </div>
-                <h3 className="release-headline">{release.headline}</h3>
-                <p className="release-summary">{release.summary}</p>
+                </p>
                 <ul className="release-notes">
                   {release.notes.map((note) => (
                     <li className="release-note" key={note}>
