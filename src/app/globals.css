@@ -1081,6 +1081,7 @@ p {
 .site-footer {
   width: 100%;
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   padding: 0.75rem 1rem 1.25rem;
 }
@@ -1098,4 +1099,134 @@ p {
 
 .site-footer__link:hover {
   color: rgba(92, 59, 30, 0.9);
+}
+
+/* Keep the version on one line — mid-string wrapping reads badly now that it
+   is a link. */
+.site-footer__version {
+  white-space: nowrap;
+}
+
+.site-footer__version:hover,
+.site-footer__version:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ── Tooltips ────────────────────────────────────────────────────────── */
+/* react-tooltip injects its own default theme at runtime; the doubled class
+   keeps ours ahead of it regardless of stylesheet order. */
+.react-tooltip.app-tooltip {
+  --rt-opacity: 1;
+  z-index: 10;
+  max-width: min(20rem, 80vw);
+  background: var(--bg-paper);
+  color: var(--fg-text);
+  border: 2px solid var(--accent-gold);
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.3;
+  text-align: center;
+  box-shadow: 0 6px 14px rgba(92, 59, 30, 0.28);
+}
+
+.react-tooltip.app-tooltip .react-tooltip-content-wrapper {
+  padding: 0.3rem 0.6rem;
+}
+
+/* The arrow inherits the bubble's background, so it only needs the border. */
+.react-tooltip.app-tooltip .app-tooltip__arrow {
+  border: 2px solid var(--accent-gold);
+}
+
+/* ── Changelog ───────────────────────────────────────────────────────── */
+.changelog-intro {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.changelog-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.release-card {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.release-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.release-version {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  color: var(--accent-red);
+  text-shadow: 1px 1px 0 #ffe6a6;
+}
+
+.release-latest {
+  font-family: var(--font-heading);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff0a6;
+  background: linear-gradient(180deg, #5b7f38 0%, #446029 100%);
+  border: 2px solid var(--accent-gold);
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+}
+
+.release-date {
+  margin-left: auto;
+  font-size: 0.9rem;
+  color: var(--fg-text-muted);
+}
+
+.release-headline {
+  margin: 0;
+  font-size: 1.15rem;
+  color: var(--fg-text);
+}
+
+.release-note {
+  margin: 0;
+  color: var(--fg-text-soft);
+}
+
+.changelog-actions {
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 480px) {
+  .release-date {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* ── Utilities ───────────────────────────────────────────────────────── */
+/* Visible to screen readers only — pairs with tooltips whose text is not
+   otherwise on screen. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }

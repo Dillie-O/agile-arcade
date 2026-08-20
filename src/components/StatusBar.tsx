@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import QRCode from "qrcode";
+import { tip } from "@/lib/tooltip";
 
 type KioskAction = {
   href: string;
   label: string;
+  hint: string;
   external?: boolean;
 };
 
@@ -70,7 +72,13 @@ export function StatusBar({ roomId, isConnected, tunnelUrl, onStopTunnel, kioskA
         <div className="room-info-line wrap">
           <span className="room-info-label">Local:</span>
           <strong className="share-url room-url-text">{shareMeta?.display ?? `…/game/${roomId}`}</strong>
-          <button className="button room-copy-button" type="button" onClick={() => openQr(shareMeta!.copyValue)} disabled={!shareMeta}>
+          <button
+            className="button room-copy-button"
+            type="button"
+            onClick={() => openQr(shareMeta!.copyValue)}
+            disabled={!shareMeta}
+            {...tip("Show a QR code and copy the join link")}
+          >
             Share Game
           </button>
           {kioskAction ? (
@@ -79,6 +87,7 @@ export function StatusBar({ roomId, isConnected, tunnelUrl, onStopTunnel, kioskA
               className="button button-blue"
               target={kioskAction.external ? "_blank" : undefined}
               rel={kioskAction.external ? "noopener noreferrer" : undefined}
+              {...tip(kioskAction.hint)}
             >
               {kioskAction.label}
             </Link>
@@ -89,11 +98,22 @@ export function StatusBar({ roomId, isConnected, tunnelUrl, onStopTunnel, kioskA
           <div className="room-info-line wrap">
             <span className="room-info-label">ngrok:</span>
             <strong className="share-url room-url-text">{tunnelUrl}/game/{roomId}</strong>
-            <button className="button room-copy-button" type="button" onClick={() => openQr(`${tunnelUrl}/game/${roomId}`)}>
+            <button
+              className="button room-copy-button"
+              type="button"
+              onClick={() => openQr(`${tunnelUrl}/game/${roomId}`)}
+              {...tip("Share the public ngrok link so players outside your network can join")}
+            >
               Share Game
             </button>
             {onStopTunnel ? (
-              <button className="button button-danger" type="button" onClick={onStop} disabled={isStopping}>
+              <button
+                className="button button-danger"
+                type="button"
+                onClick={onStop}
+                disabled={isStopping}
+                {...tip("Close the public link — players outside your network will lose access")}
+              >
                 {isStopping ? "Stopping…" : "Stop Tunnel"}
               </button>
             ) : null}

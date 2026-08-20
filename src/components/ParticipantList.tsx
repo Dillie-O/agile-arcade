@@ -1,4 +1,5 @@
 import { Participant } from "@/lib/types";
+import { tip } from "@/lib/tooltip";
 
 type Props = {
   participants: Participant[];
@@ -26,6 +27,14 @@ export function ParticipantList({
         const hasVoted = participant.hasVoted || Boolean(participant.vote);
         const stateEmoji = hasVoted ? "✅" : "⏳";
         const displayStatus = revealed && participant.vote ? participant.vote : stateEmoji;
+        // The emoji alone tells a screen reader nothing useful ("hourglass"),
+        // so the tooltip text doubles as the spoken status.
+        const statusLabel =
+          revealed && participant.vote
+            ? `${participant.name} voted ${participant.vote}`
+            : hasVoted
+            ? "Vote is in"
+            : "Still deciding";
         const emojiClass = participant.isHost
           ? "participant-emoji participant-emoji--host"
           : isMe
@@ -40,7 +49,7 @@ export function ParticipantList({
               type="button"
               onClick={() => onRemoveParticipant?.(participant)}
               aria-label={`Remove ${participant.name} from room`}
-              title={`Remove ${participant.name} from room`}
+              {...tip(`Remove ${participant.name} from room`)}
             >
               <span className="participant-emoji-icon" aria-hidden="true">{participant.emoji}</span>
               <span className="participant-emoji-trash" aria-hidden="true">❌</span>
@@ -53,7 +62,7 @@ export function ParticipantList({
               type="button"
               onClick={() => onChangeAvatar?.()}
               aria-label="Change your avatar"
-              title="Change your avatar"
+              {...tip("Change your avatar")}
             >
               <span className="participant-emoji-icon" aria-hidden="true">{participant.emoji}</span>
               <span className="participant-emoji-pencil" aria-hidden="true">✏️</span>
@@ -70,8 +79,10 @@ export function ParticipantList({
               <span className="participant-name">{participant.name}</span>
               <strong
                 className={`participant-status ${hasVoted ? "status-ready" : "status-waiting"}`}
+                {...tip(statusLabel)}
               >
-                {displayStatus}
+                <span aria-hidden="true">{displayStatus}</span>
+                <span className="sr-only">{statusLabel}</span>
               </strong>
             </div>
           </li>
