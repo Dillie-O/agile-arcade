@@ -1141,16 +1141,33 @@ p {
 }
 
 /* ── Changelog ───────────────────────────────────────────────────────── */
-.changelog-intro {
+.changelog-lore {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: center;
+  text-align: center;
+}
+
+/* Centred within the panel, but the prose itself reads left-aligned. */
+.lore-paragraph {
+  max-width: 62ch;
+  text-align: left;
+  color: var(--fg-text-soft);
+}
+
+.changelog-releases {
   display: grid;
   gap: 0.4rem;
-  justify-items: center;
+}
+
+.changelog-heading,
+.changelog-subheading {
   text-align: center;
 }
 
 .changelog-list {
   list-style: none;
-  margin: 0;
+  margin: 0.35rem 0 0;
   padding: 0;
   display: grid;
   gap: 0.75rem;
@@ -1199,9 +1216,31 @@ p {
   color: var(--fg-text);
 }
 
-.release-note {
+.release-summary {
   margin: 0;
+  color: var(--fg-text);
+  font-style: italic;
+}
+
+.release-notes {
+  list-style: none;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.release-note {
+  position: relative;
+  padding-left: 1.1rem;
   color: var(--fg-text-soft);
+}
+
+.release-note::before {
+  content: "▸";
+  position: absolute;
+  left: 0;
+  color: var(--accent-gold);
 }
 
 .changelog-actions {

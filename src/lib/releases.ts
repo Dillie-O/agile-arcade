@@ -5,9 +5,20 @@ export type Release = {
   date: string;
   /** Short, friendly title for the release. */
   headline: string;
-  /** Plain-language notes — what changed for players, not for developers. */
+  /** One fun line setting up what the release was about. */
+  summary: string;
+  /** Plain-language bullets — what changed for players, not for developers. */
   notes: string[];
 };
+
+/**
+ * The story behind the app, lifted from the README so newcomers landing on
+ * /changelog get the same introduction contributors get on GitHub.
+ */
+export const LORE: string[] = [
+  "Yes, this is “yet another agile poker planning” tool, but it started as a fun train-hacking excursion — inspired by a team lead who mentioned being “paywalled” on a “free” tool after “too much use”. I hope it helps you too.",
+  "It is built to be very low friction and self-hosted, so you can fire it up on demand or leave it running on an internal server with minimal resources. No accounts, no sign-up, no nagging — just a room, a deck, and your team.",
+];
 
 /**
  * Player-facing release notes, newest first.
@@ -22,36 +33,47 @@ export const RELEASES: Release[] = [
     version: "1.6.0",
     date: "2026-08-20",
     headline: "A changelog worth reading",
+    summary: "The footer finally goes somewhere, and hover hints grew up.",
     notes: [
-      "The version number in the footer is now a link. Follow it here for a plain-language history of everything that has changed.",
-      "Hover hints across the app were replaced with proper tooltips — they match the arcade theme, show up right away, and finally work on phones with a tap.",
+      "The version number in the footer is a link — follow it here any time.",
+      "Every release gets a plain-language write-up instead of a wall of commit messages.",
+      "The story behind the app now lives at the top of this page.",
+      "Hover hints became proper tooltips, styled to match the rest of the arcade.",
+      "Tooltips finally work on phones: tap to open, tap again to dismiss.",
     ],
   },
   {
     version: "1.5.0",
     date: "2026-08-18",
     headline: "Confetti for a clean sweep",
+    summary: "Agreement deserves a party.",
     notes: [
-      "When everyone lands on the same card, confetti rains down and a banner celebrates in three languages — English flanked by two of 41 others, drawn fresh each time. Hover a word to find out which language it is.",
-      "Sitting a round out with ☕ or ? will not spoil the party, and the celebration shows on the kiosk screen too.",
-      "You can change your avatar mid-game now: hover your own icon in the participant list and click the pencil.",
+      "Everyone picks the same card? Confetti falls, and a banner calls it out in three languages.",
+      "English is flanked by two of 41 other languages, drawn fresh each time — hover a word to see which one you got.",
+      "☕ and ? count as sitting the round out, so an abstainer never spoils the celebration.",
+      "The party shows up on the kiosk screen too, and clears when the next round starts.",
+      "You can change your avatar mid-game: hover your own icon and click the pencil.",
     ],
   },
   {
     version: "1.4.0",
     date: "2026-08-14",
     headline: "Pick your own avatar",
+    summary: "No more settling for whatever the dice gave you.",
     notes: [
-      "The join screen has a “Pick Your Own” button that opens a full picker, sorted into Arcade, Creatures, Cosmic, Fantasy and Snacks.",
-      "The icon set grew from 16 to 74, so big groups are far less likely to end up as twins.",
+      "A “Pick Your Own” button on the join screen opens the full picker.",
+      "Icons are grouped into Arcade, Creatures, Cosmic, Fantasy and Snacks.",
+      "74 icons instead of 16, so big groups stop turning up as twins.",
     ],
   },
   {
     version: "1.3.1",
     date: "2026-06-24",
     headline: "A cleaner participant list",
+    summary: "Less clutter, more signal.",
     notes: [
-      "Status reads at a glance: ⏳ while someone is deciding, ✅ once their vote is in. Long names are no longer cut off.",
+      "⏳ while someone is deciding, ✅ once their vote is in.",
+      "Long names are no longer cut off.",
       "Hosts remove a player by hovering their avatar and clicking the ❌.",
     ],
   },
@@ -59,49 +81,51 @@ export const RELEASES: Release[] = [
     version: "1.3.0",
     date: "2026-06-22",
     headline: "Install it, share it",
+    summary: "On your home screen, and a QR code for everyone else.",
     notes: [
-      "Agile Arcade can be added to your home screen on Chrome and Safari, and opens like a real app.",
-      "The “Share Game” button pops up a QR code, so mobile players can scan their way in instead of typing a URL.",
+      "Add Agile Arcade to your home screen on Chrome or Safari — it opens like a real app.",
+      "“Share Game” pops up a scannable QR code, so players can scan instead of typing a URL.",
     ],
   },
   {
     version: "1.2.9",
     date: "2026-06-04",
     headline: "Kiosk keeps its slot",
-    notes: [
-      "Closing a kiosk tab abruptly no longer locks the room out of kiosk mode.",
-    ],
+    summary: "One stuck tab no longer ruins it for everyone.",
+    notes: ["Closing a kiosk tab abruptly used to lock the room out of kiosk mode. Not any more."],
   },
   {
     version: "1.2.8",
     date: "2026-05-27",
     headline: "Tidier kiosk controls",
+    summary: "Fewer rows, clearer state.",
     notes: [
       "Kiosk open and exit moved into the top link bar instead of taking up a row of their own.",
-      "While voting is underway the kiosk shows a placeholder card, then flips to the results when they are revealed.",
+      "The kiosk shows a placeholder card while voting is underway, then flips to the results.",
     ],
   },
   {
     version: "1.2.7",
     date: "2026-05-27",
     headline: "Kiosk mode",
+    summary: "A view built for the big monitor everyone is staring at.",
     notes: [
-      "Hosts can open a dedicated screen-sharing view that shows the room without voting cards or host controls.",
-      "Kiosk tabs watch quietly — they do not join the participant list or hold up a reveal.",
+      "Hosts can open a dedicated screen-sharing view with no voting cards or host controls.",
+      "Kiosk tabs watch quietly — they never join the participant list or hold up a reveal.",
     ],
   },
   {
     version: "1.2.6",
     date: "2026-05-26",
     headline: "Easier to remove a player",
-    notes: [
-      "The host's remove button is easier to hit, and stays visible on touch devices.",
-    ],
+    summary: "The remove button stopped playing hard to get.",
+    notes: ["A bigger target to hit, and it stays visible on touch devices."],
   },
   {
     version: "1.2.5",
     date: "2026-05-11",
     headline: "Hosts in control",
+    summary: "Ghost players can be shown the door.",
     notes: [
       "Hosts can remove participants straight from the list.",
       "Anyone removed gets a clear message and a way home, instead of being dropped back into the join screen.",
@@ -111,61 +135,68 @@ export const RELEASES: Release[] = [
     version: "1.2.4",
     date: "2026-05-11",
     headline: "A bigger front door",
-    notes: [
-      "The landing page got a “Choose your Quest” hero with one-click buttons for the Fibonacci and T-Shirt decks.",
-    ],
+    summary: "The landing page got a glow-up.",
+    notes: ["A “Choose your Quest” hero, with one-click buttons for the Fibonacci and T-Shirt decks."],
   },
   {
     version: "1.2.3",
     date: "2026-04-28",
     headline: "Blips no longer kick you out",
+    summary: "A flaky connection is not a reason to lose your seat.",
     notes: [
-      "A brief network hiccup will not drop you from the room any more — you have half a minute to come back, and hosts keep their crown.",
+      "Drop off briefly and you have half a minute to come back before the room forgets you.",
+      "Hosts who reconnect in time keep their crown.",
     ],
   },
   {
     version: "1.2.2",
     date: "2026-04-28",
     headline: "Styling touch-ups",
+    summary: "A small paint job.",
     notes: ["Assorted layout and styling fixes."],
   },
   {
     version: "1.2.1",
     date: "2026-04-16",
     headline: "Safer story links",
-    notes: [
-      "Story links are checked before they open, so only ordinary web addresses become clickable.",
-    ],
+    summary: "Only real web addresses get to be clickable.",
+    notes: ["Story links are checked before they open."],
   },
   {
     version: "1.2.0",
     date: "2026-04-15",
     headline: "Beat the clock",
+    summary: "For teams that discuss a little too thoroughly.",
     notes: [
-      "Hosts can start a countdown of 5 to 30 seconds. Everyone watches it tick down, and the cards flip automatically when it runs out.",
+      "Hosts can start a countdown of anywhere from 5 to 30 seconds.",
+      "Everyone watches it tick down, and the cards flip automatically when it runs out.",
     ],
   },
   {
     version: "1.1.1",
     date: "2026-04-11",
     headline: "Housekeeping",
+    summary: "Nothing flashy, just smoother.",
     notes: [
-      "Typing a story no longer stutters for the host, and the app picked up a changelog and version details.",
+      "Typing a story no longer stutters for the host.",
+      "The app picked up a changelog and version details.",
     ],
   },
   {
     version: "1.1.0",
     date: "2026-04-10",
     headline: "Play from anywhere",
+    summary: "Remote players, local server.",
     notes: [
-      "Hosts can open the room to the internet through ngrok, so remote players can join a game running on a laptop.",
+      "Hosts can open the room to the internet through ngrok, so a game running on a laptop can still reach the whole team.",
     ],
   },
   {
     version: "1.0.1",
     date: "2026-04-09",
     headline: "Game on",
-    notes: ["The first release: create a room, deal a deck, vote, and reveal."],
+    summary: "The very first release.",
+    notes: ["Create a room, deal a deck, vote, and reveal."],
   },
 ];
 

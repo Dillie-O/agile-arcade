@@ -3,7 +3,7 @@
 ## [1.6.0] - 2026-08-20
 
 ### Added
-A `/changelog` page, reachable from the version number in the footer, which is now a link. The page renders the player-facing release notes in `src/lib/releases.ts` — hand-written plain-language summaries kept deliberately separate from this file, which stays the technical record. Releases are listed newest-first and the top entry is tagged "Latest".
+A `/changelog` page, reachable from the version number in the footer, which is now a link. It opens with a "lore" section adapted from the README intro, then lists the player-facing release notes in `src/lib/releases.ts` — each release a fun headline, a one-line summary, and bullets. These are hand-written plain-language summaries, kept deliberately separate from this file, which stays the technical record. Releases are listed newest-first and the top entry is tagged "Latest".
 
 ### Changed
 Hover hints are now real tooltips (`react-tooltip`) styled to match the parchment theme, replacing the native `title` attributes. They open on hover, on keyboard focus, and on tap — the last of which native `title` never supported, so result-card voter names and unanimous-banner language names are finally reachable on phones. New tooltips were added to the participant status indicator, the Share Game / kiosk / tunnel controls, and the landing page deck buttons (which now list the cards in the deck).
