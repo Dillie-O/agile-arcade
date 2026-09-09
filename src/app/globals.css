@@ -1102,9 +1102,14 @@ p {
 }
 
 /* Keep the version on one line — mid-string wrapping reads badly now that it
-   is a link. */
+   opens the changelog. It is a <button>, so the browser chrome comes off. */
 .site-footer__version {
   white-space: nowrap;
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
 }
 
 .site-footer__version:hover,
@@ -1246,6 +1251,25 @@ p {
 .changelog-actions {
   display: flex;
   justify-content: center;
+}
+
+/* The same changelog, opened over a game in progress instead of navigating
+   away from it. Taller than the other modals, and it scrolls on its own so a
+   long release history never pushes the Close button off screen. */
+.changelog-modal {
+  width: min(44rem, 94vw);
+  max-height: min(85vh, 48rem);
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.changelog-modal__scroll {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+  overflow-y: auto;
+  /* Stop the scroll from chaining to the page behind the overlay. */
+  overscroll-behavior: contain;
+  padding-right: 0.3rem;
 }
 
 @media (max-width: 480px) {
