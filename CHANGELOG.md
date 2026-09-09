@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.6.1] - 2026-09-09
+
+### Changed
+The footer version stamp opens the changelog in a modal instead of navigating to `/changelog`. Following the link from a game in progress unmounted the room and tore down its socket connection; the modal leaves the game — and the connection — alone. It closes on Escape, on a click outside the panel, or with its Close button, and scrolls internally so a growing release history never pushes that button off screen.
+
+The `/changelog` page is unchanged and still linkable. Its lore and release-list markup moved into a shared `ChangelogContent` component that both the page and the modal render, so the two cannot drift apart.
+
+---
+
 ## [1.6.0] - 2026-08-20
 
 ### Added

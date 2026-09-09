@@ -32,6 +32,18 @@ export const LORE: string[] = [
  */
 export const RELEASES: Release[] = [
   {
+    version: "1.6.1",
+    date: "2026-09-09",
+    headline: "Patch notes without pausing the game",
+    emoji: "📖",
+    notes: [
+      "The version number in the footer opens the changelog right where you are",
+      "Reading the notes mid-game no longer drops you out of the room",
+      "Close it with the Close button, the Escape key, or a click outside",
+      "The full changelog page is still there for anyone linking to it",
+    ],
+  },
+  {
     version: "1.6.0",
     date: "2026-08-20",
     headline: "A changelog worth reading",
