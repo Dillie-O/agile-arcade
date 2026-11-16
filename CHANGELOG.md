@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.8.0] - 2026-11-16
+
+### Added
+`POST /api/create-room` returns a secret `hostKey` next to the `roomId`. Sending it with `join_room` makes that participant host, taking the role from whoever held it. Without a key, the first joiner is still host. The web UI keeps the key in `localStorage` and sends it on the creator's first join, so the person who created the room ends up host even if someone with the link gets in first.
+
+### Security
+Participant ids are broadcast in every `room_state`, and reclaiming a disconnected participant's seat used to need nothing more than that id — so anyone in the room could rejoin as a disconnected player, host included. `join_room` now returns a private `rejoinToken` in its ack, and reclaiming an existing seat requires it; a wrong or missing token fails with `INVALID_REJOIN_TOKEN`. The web UI stores the token with the player's identity and sends it on every reconnect, so refreshing the page or riding out a network blip keeps your seat as before. If a stored identity cannot reclaim its seat, the UI shows the join screen instead of failing silently.
+
+Clients that reconnect without an ack callback can no longer reclaim a seat, since the token is only delivered through the ack. See `docs/PROTOCOL.md`.
+
+---
+
 ## [1.7.0] - 2026-11-16
 
 ### Added
