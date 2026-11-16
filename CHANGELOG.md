@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.9.0] - 2026-11-16
+
+### Added
+`GET /api/rooms/:roomId` returns the same snapshot `room_state` broadcasts — votes hidden until revealed, no host key or rejoin tokens — or `404` with `ROOM_NOT_FOUND`. Reads do not touch the room's activity timestamp, so polling does not keep an idle room alive.
+
+`join_room` accepts `isBot: true`. Participants carry an `isBot` flag in the snapshot, and `ParticipantList` (player and kiosk views) shows a small 🤖 badge before a bot's name, with an "Automated player" tooltip and a screen-reader label. `scripts/bot-demo.js` sets the flag.
+
+### Changed
+Auto-reveal no longer waits for participants who have been disconnected for at least `AUTO_REVEAL_DISCONNECT_SETTLE_MS` (default 5 s). Before, a player who dropped without voting held the round open until the host revealed manually — eviction after the grace period removed them without re-checking the round, so it could stall indefinitely. The check now also runs when the settle window passes after a disconnect and when the host removes a participant. The short window keeps a person who is refreshing their page from being skipped; a negative value restores the old wait-for-everyone rule. The host's manual reveal is unchanged.
+
+---
+
 ## [1.8.0] - 2026-11-16
 
 ### Added

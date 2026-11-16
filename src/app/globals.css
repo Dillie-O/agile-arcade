@@ -386,6 +386,13 @@ p {
   font-size: 1rem;
 }
 
+.participant-bot-badge {
+  display: inline-block;
+  margin-right: 0.3rem;
+  font-size: 0.85em;
+  vertical-align: 0.05em;
+}
+
 .participant-host-badge,
 .you-host-badge {
   grid-area: badge;
