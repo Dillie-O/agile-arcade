@@ -84,7 +84,15 @@ async function legacyFlow(base) {
   const hostParticipantId = randomUUID();
   const peerParticipantId = randomUUID();
 
-  firstClient.emit("join_room", { roomId, name: "HostUser", emoji: "🎮", participantId: hostParticipantId });
+  // The host joins with an ack to receive its private rejoinToken; the peer
+  // joins the original way, with no callback.
+  const hostJoin = await request(firstClient, "join_room", {
+    roomId,
+    name: "HostUser",
+    emoji: "🎮",
+    participantId: hostParticipantId,
+  });
+  assert(hostJoin.ok && typeof hostJoin.rejoinToken === "string", "host join returns rejoinToken");
   secondClient.emit("join_room", { roomId, name: "PeerUser", emoji: "🚀", participantId: peerParticipantId });
 
   await waitUntil(() => firstState?.participants?.length === 2, 7000, 50, "both participants in first state");
@@ -159,7 +167,13 @@ async function legacyFlow(base) {
   });
 
   await waitUntil(() => reconnectedClient.connected, 7000, 50, "reconnected socket connect");
-  reconnectedClient.emit("join_room", { roomId, name: "HostUser", emoji: "🎮", participantId: hostParticipantId });
+  reconnectedClient.emit("join_room", {
+    roomId,
+    name: "HostUser",
+    emoji: "🎮",
+    participantId: hostParticipantId,
+    rejoinToken: hostJoin.rejoinToken,
+  });
 
   await waitUntil(
     () => {
@@ -271,10 +285,78 @@ async function ackChecks(base) {
   }
 }
 
+async function hostAndRejoinChecks(base) {
+  const created = await createRoom(base);
+  const { roomId, hostKey } = created;
+  assert(typeof hostKey === "string" && hostKey.length >= 16, "create-room returns a hostKey");
+
+  const early = await connect(base);
+  const owner = await connect(base);
+  const thief = await connect(base);
+  let ownerAgain = null;
+
+  try {
+    // Without a host key, the first joiner is host — the fallback the UI relies on.
+    const earlyJoin = await request(early, "join_room", { roomId, name: "EarlyBird", participantId: randomUUID() });
+    assert(earlyJoin.ok && earlyJoin.isHost === true, "first joiner without hostKey becomes host");
+
+    const wrongKey = await request(thief, "join_room", { roomId, name: "Thief", hostKey: "not-the-key" });
+    assert(wrongKey.ok === false && wrongKey.error.code === "INVALID_HOST_KEY", "expected INVALID_HOST_KEY");
+
+    const ownerId = randomUUID();
+    const ownerJoin = await request(owner, "join_room", { roomId, name: "Owner", participantId: ownerId, hostKey });
+    assert(ownerJoin.ok && ownerJoin.isHost === true, "hostKey join claims host");
+    const hosts = ownerJoin.state.participants.filter((p) => p.isHost);
+    assert(hosts.length === 1 && hosts[0].id === ownerId, "exactly one host after the claim");
+    const stale = await request(early, "update_story", { roomId, story: "mine" });
+    assert(stale.ok === false && stale.error.code === "NOT_HOST", "previous host lost host rights");
+    console.log("hostKey: first-joiner fallback, INVALID_HOST_KEY, claim moves host: ok");
+
+    const snapshotText = JSON.stringify(ownerJoin.state);
+    assert(!snapshotText.includes(hostKey), "hostKey leaked into the snapshot");
+    assert(!snapshotText.includes(ownerJoin.rejoinToken), "rejoinToken leaked into the snapshot");
+    assert(ownerJoin.rejoinToken !== earlyJoin.rejoinToken, "rejoin tokens are per participant");
+    console.log("secrets: hostKey and rejoinToken absent from room_state: ok");
+
+    owner.disconnect();
+    await sleep(300);
+
+    const noToken = await request(thief, "join_room", { roomId, name: "Thief", participantId: ownerId });
+    assert(noToken.ok === false && noToken.error.code === "INVALID_REJOIN_TOKEN", "reclaim without token rejected");
+    const badToken = await request(thief, "join_room", {
+      roomId,
+      name: "Thief",
+      participantId: ownerId,
+      rejoinToken: earlyJoin.rejoinToken,
+    });
+    assert(badToken.ok === false && badToken.error.code === "INVALID_REJOIN_TOKEN", "reclaim with another seat's token rejected");
+
+    ownerAgain = await connect(base);
+    const reclaimed = await request(ownerAgain, "join_room", {
+      roomId,
+      name: "Owner",
+      participantId: ownerId,
+      rejoinToken: ownerJoin.rejoinToken,
+    });
+    assert(reclaimed.ok && reclaimed.participantId === ownerId, "reclaim with token keeps the seat");
+    assert(reclaimed.isHost === true, "reclaimed seat keeps host");
+    assert(reclaimed.rejoinToken === ownerJoin.rejoinToken, "rejoinToken is stable across reconnects");
+    const ownerEntry = reclaimed.state.participants.find((p) => p.id === ownerId);
+    assert(ownerEntry && !ownerEntry.isDisconnected, "reclaimed seat is connected");
+    console.log("rejoinToken: rejected without/with wrong token, reclaim with token: ok");
+  } finally {
+    early.disconnect();
+    owner.disconnect();
+    thief.disconnect();
+    ownerAgain?.disconnect();
+  }
+}
+
 (async () => {
   const base = process.env.AGILE_ARCADE_BASE_URL || "http://127.0.0.1:3000";
   await legacyFlow(base);
   await ackChecks(base);
+  await hostAndRejoinChecks(base);
   console.log("ALL INTERACTIVE CHECKS PASSED");
 })().catch((error) => {
   console.error("TEST FAILED:", error.message);

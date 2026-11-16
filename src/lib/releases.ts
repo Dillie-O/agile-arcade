@@ -32,6 +32,17 @@ export const LORE: string[] = [
  */
 export const RELEASES: Release[] = [
   {
+    version: "1.8.0",
+    date: "2026-11-16",
+    headline: "Your seat, your crown",
+    emoji: "👑",
+    notes: [
+      "Whoever creates the room is the host, even if a teammate clicks the link first",
+      "Only you can take your seat back after a refresh or a dropped connection",
+      "Nobody can slip into a disconnected player’s chair — or the host’s",
+    ],
+  },
+  {
     version: "1.7.0",
     date: "2026-11-16",
     headline: "Second thoughts welcome",

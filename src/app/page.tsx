@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { DeckType } from "@/lib/types";
 import { LayoutShell } from "@/components/LayoutShell";
-import { DECKS } from "@/lib/constants";
+import { DECKS, getHostKeyStorageKey } from "@/lib/constants";
 import { tip } from "@/lib/tooltip";
 import styles from "./page.module.css";
 
@@ -33,7 +33,16 @@ export default function Home() {
         throw new Error("Failed to create room");
       }
 
-      const data = (await response.json()) as { roomId: string };
+      const data = (await response.json()) as { roomId: string; hostKey?: string };
+      if (data.hostKey) {
+        // Lets the room creator claim host on their first join, even if
+        // someone with the link gets in first.
+        try {
+          localStorage.setItem(getHostKeyStorageKey(data.roomId), data.hostKey);
+        } catch {
+          // Storage unavailable: the first joiner still becomes host.
+        }
+      }
       router.push(`/game/${data.roomId}`);
     } catch {
       setError("Unable to create game right now.");
