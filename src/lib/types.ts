@@ -8,6 +8,8 @@ export type Participant = {
   hasVoted: boolean;
   isHost: boolean;
   isDisconnected: boolean;
+  /** Joined as an automated client (join_room with isBot: true). */
+  isBot?: boolean;
 };
 
 export type Room = {

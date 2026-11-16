@@ -76,7 +76,15 @@ export function ParticipantList({
           <li className="participant-row" key={participant.id}>
             <div className="participant-main">
               {emojiSlot}
-              <span className="participant-name">{participant.name}</span>
+              <span className="participant-name">
+                {participant.isBot ? (
+                  <span className="participant-bot-badge" {...tip("Automated player")}>
+                    <span aria-hidden="true">🤖</span>
+                    <span className="sr-only">Bot: </span>
+                  </span>
+                ) : null}
+                {participant.name}
+              </span>
               <strong
                 className={`participant-status ${hasVoted ? "status-ready" : "status-waiting"}`}
                 {...tip(statusLabel)}

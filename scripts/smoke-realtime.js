@@ -7,7 +7,7 @@ async function waitUntil(check, timeoutMs = 7000, stepMs = 50, label = "conditio
   const started = Date.now();
 
   while (Date.now() - started < timeoutMs) {
-    const value = check();
+    const value = await check();
     if (value) {
       return value;
     }
@@ -352,11 +352,72 @@ async function hostAndRejoinChecks(base) {
   }
 }
 
+async function restBotAndRevealChecks(base) {
+  const { roomId } = await createRoom(base);
+  const bots = await Promise.all([connect(base), connect(base), connect(base)]);
+  const [alpha, beta, crasher] = bots;
+
+  try {
+    const missing = await fetch(`${base}/api/rooms/ZZZZZZ`);
+    assert(missing.status === 404, `expected 404 for unknown room, got ${missing.status}`);
+    const missingBody = await missing.json();
+    assert(missingBody.error?.code === "ROOM_NOT_FOUND", "404 body carries ROOM_NOT_FOUND");
+
+    const empty = await fetch(`${base}/api/rooms/${roomId.toLowerCase()}`);
+    assert(empty.status === 200, `expected 200 for room, got ${empty.status}`);
+    assert((await empty.json()).id === roomId, "GET is case-insensitive");
+
+    const alphaJoin = await request(alpha, "join_room", { roomId, name: "Alpha", isBot: true, participantId: randomUUID() });
+    await request(beta, "join_room", { roomId, name: "Beta", participantId: randomUUID() });
+    const crashJoin = await request(crasher, "join_room", { roomId, name: "Crasher", isBot: true, participantId: randomUUID() });
+    const byName = Object.fromEntries(crashJoin.state.participants.map((p) => [p.name, p]));
+    assert(byName.Alpha.isBot === true && byName.Crasher.isBot === true, "isBot: true in snapshot");
+    assert(byName.Beta.isBot === false, "isBot defaults to false");
+    console.log("isBot: flag in snapshot: ok");
+
+    await request(alpha, "cast_vote", { roomId, value: "5" });
+    await request(beta, "cast_vote", { roomId, value: "8" });
+
+    const hidden = await (await fetch(`${base}/api/rooms/${roomId}`)).json();
+    assert(hidden.revealed === false, "REST: not revealed yet");
+    assert(hidden.participants.every((p) => p.vote === undefined), "REST: votes hidden before reveal");
+    assert(hidden.participants.filter((p) => p.hasVoted).length === 2, "REST: hasVoted visible");
+    assert(!JSON.stringify(hidden).includes(alphaJoin.rejoinToken), "REST: no rejoinToken");
+    const socketView = alphaJoin.state;
+    assert(Object.keys(hidden).sort().join() === Object.keys(socketView).sort().join(), "REST snapshot has room_state's shape");
+    console.log("REST: GET /api/rooms/:roomId 404, case-insensitive, votes hidden: ok");
+
+    // The crasher drops without voting. The round must not reveal at once (a
+    // human refreshing gets a moment to come back) but must not stall either.
+    crasher.disconnect();
+    await sleep(1000);
+    const stillOpen = await (await fetch(`${base}/api/rooms/${roomId}`)).json();
+    assert(stillOpen.revealed === false, "no instant reveal when a player disconnects");
+    assert(stillOpen.participants.find((p) => p.name === "Crasher")?.isDisconnected === true, "crasher marked disconnected");
+
+    const revealed = await waitUntil(
+      async () => {
+        const state = await (await fetch(`${base}/api/rooms/${roomId}`)).json();
+        return state.revealed ? state : null;
+      },
+      15000,
+      250,
+      "auto-reveal after a voter disconnected"
+    );
+    const votes = revealed.participants.filter((p) => p.vote).map((p) => p.vote).sort().join(",");
+    assert(votes === "5,8", `unexpected revealed votes: ${votes}`);
+    console.log("auto-reveal: disconnected non-voter no longer blocks the round: ok");
+  } finally {
+    bots.forEach((socket) => socket.disconnect());
+  }
+}
+
 (async () => {
   const base = process.env.AGILE_ARCADE_BASE_URL || "http://127.0.0.1:3000";
   await legacyFlow(base);
   await ackChecks(base);
   await hostAndRejoinChecks(base);
+  await restBotAndRevealChecks(base);
   console.log("ALL INTERACTIVE CHECKS PASSED");
 })().catch((error) => {
   console.error("TEST FAILED:", error.message);

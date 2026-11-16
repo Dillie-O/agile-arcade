@@ -68,6 +68,20 @@ accept them in any case; the server upper-cases them. A body over 1 KB gets
 Creating a room does not join it. The room exists until it has been idle for
 two hours, or until its last participant is removed.
 
+### `GET /api/rooms/:roomId`
+
+Read-only view of a room, for bots and dashboards that do not want to hold a
+socket open. Returns `200` with exactly the [snapshot](#room-snapshot) that
+`room_state` broadcasts — votes hidden until revealed, no secrets. The room id
+is case-insensitive. Reading a room does not count as activity, so polling it
+does not keep an idle room alive.
+
+Unknown or expired room: `404` with
+
+```json
+{ "error": { "code": "ROOM_NOT_FOUND", "message": "Room not found" } }
+```
+
 ## Socket.IO
 
 Connect to the same origin as the web app (default path `/socket.io`). The
@@ -82,7 +96,7 @@ joined.
 
 | Event | Payload | Who | Effect |
 |---|---|---|---|
-| `join_room` | `{ roomId, name, emoji?, participantId?, hostKey?, rejoinToken? }` | anyone | Joins (or rejoins) as a participant. See [Joining](#joining). |
+| `join_room` | `{ roomId, name, emoji?, participantId?, hostKey?, rejoinToken?, isBot? }` | anyone | Joins (or rejoins) as a participant. See [Joining](#joining). |
 | `join_viewer` | `{ roomId }` | anyone | Watches without a seat (kiosk mode). Only one viewer per room. |
 | `cast_vote` | `{ roomId, value }` | participant | Records or changes your vote. See [Voting](#voting). |
 | `change_emoji` | `{ roomId, emoji }` | participant | Changes your avatar. |
@@ -179,6 +193,7 @@ error object.
       "hasVoted": true,
       "isHost": true,
       "isDisconnected": false,      // true during the reconnect grace period
+      "isBot": true,                // joined with isBot: true
       "vote": "5"                   // only present once revealed
     }
   ]
@@ -203,6 +218,9 @@ only `hasVoted` tells you who is done.
   already holds needs no token.
 - If `participantId` belongs to a socket that is still connected, the server
   ignores it and seats you under your socket id instead.
+- `isBot: true` (optional) marks you as an automated player: the snapshot
+  carries `isBot: true` and the web UI shows a 🤖 badge next to your name.
+  Please set it for anything that is not a person at a keyboard.
 - `hostKey` (optional) must match the room's key or the join fails with
   `INVALID_HOST_KEY`. With the right key you become host.
 
@@ -247,10 +265,14 @@ this one out".
   rejected with `RATE_LIMITED` and `retryAfterMs`; resend it after that delay
   if you still want it. (The web UI does this for you: the last card clicked
   wins.)
-- **Auto-reveal:** as soon as every participant has `hasVoted: true`, the
-  server reveals the round. Disconnected participants count, so a participant
-  who dropped without voting holds the round open until the host reveals or the
-  grace period evicts them.
+- **Auto-reveal:** as soon as every participant still at the table has
+  `hasVoted: true`, the server reveals the round. A participant who has been
+  disconnected for 5 seconds or more (`AUTO_REVEAL_DISCONNECT_SETTLE_MS`) is no
+  longer waited for, so a crashed client cannot stall the round; the reveal
+  happens as soon as that window passes. The short wait means a person
+  refreshing their page does not get skipped. Setting the variable to a
+  negative number restores the old rule of waiting for everyone. Disconnects,
+  votes and removals by the host can all trigger the reveal.
 - The host can reveal at any time with `reveal_votes`, or start a timer that
   reveals when it ends.
 - `reset_round` starts a new round: votes, story and timer are cleared.
