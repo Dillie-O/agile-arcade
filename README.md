@@ -88,6 +88,8 @@ cp .env.example .env
 |---|---|---|
 | `PORT` | `3000` | Port the server listens on. Injected automatically by most hosting platforms. |
 | `NODE_ENV` | `development` | Set to `production` for a production build. |
+| `DISCONNECT_GRACE_MS` | `30000` | How long a disconnected participant keeps their seat before being removed. |
+| `AUTO_REVEAL_DISCONNECT_SETTLE_MS` | `5000` | How long a participant can be disconnected before auto-reveal stops waiting for their vote. Negative waits for everyone. |
 
 ---
 

@@ -130,6 +130,7 @@ const main = async () => {
         name: bot.name,
         emoji: bot.emoji,
         participantId: bot.participantId,
+        isBot: true, // shows a 🤖 badge next to the name for the humans
       });
     }
     const host = bots[0];

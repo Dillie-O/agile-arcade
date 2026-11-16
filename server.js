@@ -19,6 +19,8 @@ const {
   setRoomTimer,
   revealVotes,
   resetRound,
+  shouldAutoReveal,
+  AUTO_REVEAL_DISCONNECT_SETTLE_MS,
   isValidVote,
   getDeckValues,
   secretsMatch,
@@ -95,6 +97,29 @@ app.prepare().then(() => {
       // hostKey is a secret: whoever joins with it becomes host. It is never
       // included in room snapshots.
       res.end(JSON.stringify({ roomId: room.id, hostKey: room.hostKey }));
+      return;
+    }
+
+    const roomRoute = req.method === "GET" && /^\/api\/rooms\/([^/?#]+)\/?(?:[?#].*)?$/.exec(req.url || "");
+    if (roomRoute) {
+      // Read-only view of a room: the same snapshot room_state broadcasts,
+      // votes hidden until revealed. Does not count as room activity.
+      let roomId = "";
+      try {
+        roomId = decodeURIComponent(roomRoute[1]);
+      } catch {
+        roomId = "";
+      }
+      const room = getRoom(roomId);
+      res.setHeader("Content-Type", "application/json");
+      res.setHeader("Cache-Control", "no-store");
+      if (!room) {
+        res.statusCode = 404;
+        res.end(JSON.stringify({ error: { code: ERROR_CODES.ROOM_NOT_FOUND, message: "Room not found" } }));
+        return;
+      }
+      res.statusCode = 200;
+      res.end(JSON.stringify(roomToSnapshot(room)));
       return;
     }
 
@@ -194,6 +219,18 @@ app.prepare().then(() => {
     return room ? roomToSnapshot(room) : null;
   };
 
+  // Reveals the round if everyone still at the table has voted. Returns true
+  // when it revealed, so the caller knows to broadcast.
+  const autoRevealIfReady = (roomId) => {
+    const room = getRoom(roomId);
+    if (!shouldAutoReveal(room)) {
+      return false;
+    }
+    clearRoomTimer(roomId);
+    revealVotes(roomId);
+    return true;
+  };
+
   const clearRoomTimer = (roomId) => {
     if (roomTimers.has(roomId)) {
       clearTimeout(roomTimers.get(roomId));
@@ -288,6 +325,7 @@ app.prepare().then(() => {
       const roomId = String(payload.roomId || "").toUpperCase();
       const name = String(payload.name || "").trim();
       const emoji = String(payload.emoji || "🎮").trim() || "🎮";
+      const isBot = payload.isBot === true;
       const clientId = String(payload.participantId || "").trim();
       const hostKey = payload.hostKey == null ? "" : String(payload.hostKey);
       const rejoinToken = payload.rejoinToken == null ? "" : String(payload.rejoinToken);
@@ -347,9 +385,10 @@ app.prepare().then(() => {
       if (seat) {
         seat.name = name;
         seat.emoji = emoji;
+        seat.isBot = isBot;
         reconnectParticipant(roomId, participantId);
       } else {
-        seat = addParticipant(roomId, { id: participantId, name, emoji });
+        seat = addParticipant(roomId, { id: participantId, name, emoji, isBot });
       }
 
       if (hostKey) {
@@ -403,19 +442,7 @@ app.prepare().then(() => {
 
       setParticipantVote(roomId, participantId, value);
       touchRoom(roomId);
-
-      const updatedRoom = getRoom(roomId);
-      const allVoted =
-        updatedRoom &&
-        updatedRoom.participants.length > 0 &&
-        updatedRoom.participants.every((p) => p.hasVoted) &&
-        !updatedRoom.revealed;
-
-      if (allVoted) {
-        clearRoomTimer(roomId);
-        revealVotes(roomId);
-      }
-
+      autoRevealIfReady(roomId);
       emitRoom(roomId);
       replyWithState(reply, roomId);
     });
@@ -611,6 +638,8 @@ app.prepare().then(() => {
 
       removeParticipant(roomId, targetParticipantId);
       touchRoom(roomId);
+      // The removed player may have been the last one the round waited for.
+      autoRevealIfReady(roomId);
 
       const targetSocketId = activeParticipants.get(targetParticipantId);
       if (targetSocketId) {
@@ -648,6 +677,16 @@ app.prepare().then(() => {
       markParticipantDisconnected(roomId, participantId);
       touchRoom(roomId);
       emitRoom(roomId);
+
+      // If they stay away past the settle window, stop waiting for their vote.
+      if (AUTO_REVEAL_DISCONNECT_SETTLE_MS >= 0) {
+        setTimeout(() => {
+          if (autoRevealIfReady(roomId)) {
+            touchRoom(roomId);
+            emitRoom(roomId);
+          }
+        }, AUTO_REVEAL_DISCONNECT_SETTLE_MS + 50);
+      }
     });
   });
 
