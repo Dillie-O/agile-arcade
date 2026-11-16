@@ -26,3 +26,7 @@ export type Identity = {
   emoji: string;
   participantId?: string;
 };
+/** Reply to a Socket.IO event sent with an ack callback. See docs/PROTOCOL.md. */
+export type SocketAck =
+  | { ok: true; state: Room | null }
+  | { ok: false; error: { code: string; message: string; retryAfterMs?: number } };

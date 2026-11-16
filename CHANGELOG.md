@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.7.0] - 2026-11-16
+
+### Added
+Every Socket.IO client event now accepts an ack callback. The server answers exactly once with `{ ok: true, state }` (plus `participantId` for `join_room`) or `{ ok: false, error: { code, message } }`, so headless clients no longer have to infer success from the next `room_state`. Clients that do not pass a callback see no change: successes stay silent and failures still arrive as `room_not_found`, `not_authorized`, `kiosk_occupied` or `error`.
+
+Failures carry stable error codes (`INVALID_PAYLOAD`, `ROOM_NOT_FOUND`, `NOT_JOINED`, `NOT_HOST`, `INVALID_VOTE`, `RATE_LIMITED`, `INVALID_TIMER_DURATION`, `ALREADY_REVEALED`, `PARTICIPANT_NOT_FOUND`, `CANNOT_REMOVE_SELF`, `KIOSK_OCCUPIED`, `INTERNAL_ERROR`) beside the human-readable message. The `error` event keeps the message as its first argument and adds the structured error as a second; the other failure events now carry the structured error as their payload. All of it is documented in `docs/PROTOCOL.md`, alongside the new `npm run bot:demo` script.
+
+### Changed
+A vote sent less than 500 ms after the same socket's previous vote used to be dropped without a word. It is now rejected with `RATE_LIMITED` and a `retryAfterMs` hint. The web UI uses the hint to resend the latest card automatically, so changing your mind quickly keeps the last card you clicked instead of the first.
+
+Event handlers no longer throw on a `null` or non-object payload.
+
+---
+
 ## [1.6.1] - 2026-09-09
 
 ### Changed

@@ -82,6 +82,15 @@ const connectBot = async (base, index) => {
   return bot;
 };
 
+// Sends an event with an ack callback and throws if the server says no.
+const request = async (bot, event, payload) => {
+  const reply = await bot.socket.timeout(5000).emitWithAck(event, payload);
+  if (!reply.ok) {
+    throw new Error(`${bot.name}: ${event} failed with ${reply.error.code}: ${reply.error.message}`);
+  }
+  return reply;
+};
+
 const assertNoErrors = (bots) => {
   for (const bot of bots) {
     if (bot.errors.length > 0) {
@@ -112,34 +121,33 @@ const main = async () => {
   try {
     // Join one at a time so the first bot is reliably the first joiner, and
     // therefore the host.
+    // Every event takes an optional ack callback that replies with
+    // { ok: true, state } or { ok: false, error: { code, message } }.
+    let joined;
     for (const bot of bots) {
-      bot.socket.emit("join_room", {
+      joined = await request(bot, "join_room", {
         roomId,
         name: bot.name,
         emoji: bot.emoji,
         participantId: bot.participantId,
       });
-      await waitFor(
-        () => bot.state?.participants?.some((p) => p.id === bot.participantId),
-        `${bot.name} to join`
-      );
     }
     const host = bots[0];
-    const last = bots[bots.length - 1];
-    await waitFor(() => host.state?.participants?.length === bots.length, "all bots in the room");
-    if (!host.state.participants.find((p) => p.id === host.participantId)?.isHost) {
+    if (joined.state.participants.length !== bots.length) {
+      throw new Error("not every bot is in the room");
+    }
+    if (!joined.state.participants.find((p) => p.id === host.participantId)?.isHost) {
       throw new Error(`${host.name} is not the host`);
     }
     console.log(`${bots.length} bot(s) joined; ${host.name} is host`);
 
-    host.socket.emit("update_story", { roomId, story: args.story });
-    await waitFor(() => last.state?.story === args.story, "story to propagate");
+    await request(host, "update_story", { roomId, story: args.story });
     console.log(`story set: ${args.story}`);
 
     const deck = DECKS[args.deck];
     for (const bot of bots) {
       const value = deck[Math.floor(Math.random() * deck.length)];
-      bot.socket.emit("cast_vote", { roomId, value });
+      await request(bot, "cast_vote", { roomId, value });
     }
 
     // The server reveals automatically once every participant has voted.

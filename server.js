@@ -19,8 +19,10 @@ const {
   revealVotes,
   resetRound,
   isValidVote,
+  getDeckValues,
   startCleanupJob,
 } = require("./server/rooms");
+const { ERROR_CODES, normalizeArgs, createResponder } = require("./server/protocol");
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "0.0.0.0";
@@ -34,6 +36,11 @@ const roomTimers = new Map();
 
 // Maps roomId -> socketId for the single active kiosk viewer per room
 const kioskSockets = new Map();
+
+// Minimum gap between two votes from the same socket.
+const VOTE_INTERVAL_MS = 500;
+
+const VALID_TIMER_DURATIONS = [5, 10, 15, 20, 25, 30];
 
 // Rate-limit state for tunnel creation
 let lastTunnelAttemptAt = 0;
@@ -178,20 +185,71 @@ app.prepare().then(() => {
     io.to(roomId).emit("room_state", roomToSnapshot(room));
   };
 
+  const snapshotOf = (roomId) => {
+    const room = getRoom(roomId);
+    return room ? roomToSnapshot(room) : null;
+  };
+
+  const clearRoomTimer = (roomId) => {
+    if (roomTimers.has(roomId)) {
+      clearTimeout(roomTimers.get(roomId));
+      roomTimers.delete(roomId);
+    }
+  };
+
   io.on("connection", (socket) => {
     let lastVoteAt = 0;
 
-    socket.on("join_viewer", (payload = {}) => {
+    // Registers a handler that receives a normalised payload and a responder
+    // (see server/protocol.js). Every event accepts an optional ack callback.
+    const on = (event, handler) => {
+      socket.on(event, (rawPayload, rawAck) => {
+        const { payload, ack } = normalizeArgs(rawPayload, rawAck);
+        const reply = createResponder(socket, ack);
+        try {
+          handler(payload, reply);
+        } catch (err) {
+          console.error(`Error handling ${event}:`, err);
+          reply.fail(ERROR_CODES.INTERNAL_ERROR, "Something went wrong");
+        }
+      });
+    };
+
+    const replyWithState = (reply, roomId, extra = {}) => {
+      reply.ok({ state: snapshotOf(roomId), ...extra });
+    };
+
+    const resolveRoomId = (payload) => String(payload.roomId || socket.data.roomId || "").toUpperCase();
+    const currentParticipantId = () => socket.data.participantId || socket.id;
+
+    const roomNotFound = (reply) => reply.fail(ERROR_CODES.ROOM_NOT_FOUND, "Room not found");
+
+    // Returns the acting participant if they are the host; otherwise replies
+    // with NOT_JOINED / NOT_HOST (both `not_authorized` without an ack).
+    const requireHost = (room, reply) => {
+      const participant = room.participants.find((item) => item.id === currentParticipantId());
+      if (!participant) {
+        reply.fail(ERROR_CODES.NOT_JOINED, "Join the room first", { legacyEvent: "not_authorized" });
+        return null;
+      }
+      if (!participant.isHost) {
+        reply.fail(ERROR_CODES.NOT_HOST, "Only the host can do that");
+        return null;
+      }
+      return participant;
+    };
+
+    on("join_viewer", (payload, reply) => {
       const roomId = String(payload.roomId || "").toUpperCase();
 
       if (!roomId) {
-        socket.emit("error", "Invalid room");
+        reply.fail(ERROR_CODES.INVALID_PAYLOAD, "Invalid room");
         return;
       }
 
       const room = getRoom(roomId);
       if (!room) {
-        socket.emit("room_not_found");
+        roomNotFound(reply);
         return;
       }
 
@@ -199,7 +257,7 @@ app.prepare().then(() => {
       if (existingKioskId && existingKioskId !== socket.id) {
         const existingSocket = io.sockets.sockets.get(existingKioskId);
         if (existingSocket?.connected) {
-          socket.emit("kiosk_occupied");
+          reply.fail(ERROR_CODES.KIOSK_OCCUPIED, "This room already has a kiosk viewer");
           return;
         }
         // Stale entry — the previous kiosk socket is no longer connected; clean it up.
@@ -219,9 +277,10 @@ app.prepare().then(() => {
       kioskSockets.set(roomId, socket.id);
       touchRoom(roomId);
       emitRoom(roomId);
+      replyWithState(reply, roomId);
     });
 
-    socket.on("join_room", (payload = {}) => {
+    on("join_room", (payload, reply) => {
       const roomId = String(payload.roomId || "").toUpperCase();
       const name = String(payload.name || "").trim();
       const emoji = String(payload.emoji || "🎮").trim() || "🎮";
@@ -236,13 +295,13 @@ app.prepare().then(() => {
         participantId = clientId || socket.id;
       }
       if (!roomId || !name) {
-        socket.emit("error", "Invalid room or name");
+        reply.fail(ERROR_CODES.INVALID_PAYLOAD, "Invalid room or name");
         return;
       }
 
       const room = getRoom(roomId);
       if (!room) {
-        socket.emit("room_not_found");
+        roomNotFound(reply);
         return;
       }
 
@@ -271,37 +330,44 @@ app.prepare().then(() => {
 
       touchRoom(roomId);
       emitRoom(roomId);
+      replyWithState(reply, roomId, { participantId });
     });
 
-    socket.on("cast_vote", (payload = {}) => {
-      const roomId = String(payload.roomId || socket.data.roomId || "").toUpperCase();
+    on("cast_vote", (payload, reply) => {
+      const roomId = resolveRoomId(payload);
       const value = String(payload.value || "").trim();
-      const participantId = socket.data.participantId || socket.id;
+      const participantId = currentParticipantId();
 
       if (!roomId || !value) {
-        socket.emit("error", "Invalid vote payload");
+        reply.fail(ERROR_CODES.INVALID_PAYLOAD, "Invalid vote payload");
         return;
       }
 
       const room = getRoom(roomId);
       if (!room) {
-        socket.emit("room_not_found");
+        roomNotFound(reply);
         return;
       }
 
       if (!isValidVote(room.deckType, value)) {
-        socket.emit("error", "Invalid vote value");
+        reply.fail(ERROR_CODES.INVALID_VOTE, "Invalid vote value", {
+          details: { allowed: getDeckValues(room.deckType) },
+        });
         return;
       }
 
       const participant = room.participants.find((item) => item.id === participantId);
       if (!participant) {
-        socket.emit("error", "Join the room before voting");
+        reply.fail(ERROR_CODES.NOT_JOINED, "Join the room before voting");
         return;
       }
 
       const now = Date.now();
-      if (now - lastVoteAt < 500) {
+      const sinceLastVote = now - lastVoteAt;
+      if (sinceLastVote < VOTE_INTERVAL_MS) {
+        reply.fail(ERROR_CODES.RATE_LIMITED, "Voting too fast. Try again in a moment.", {
+          details: { retryAfterMs: VOTE_INTERVAL_MS - sinceLastVote },
+        });
         return;
       }
       lastVoteAt = now;
@@ -317,114 +383,116 @@ app.prepare().then(() => {
         !updatedRoom.revealed;
 
       if (allVoted) {
+        clearRoomTimer(roomId);
         revealVotes(roomId);
       }
 
       emitRoom(roomId);
+      replyWithState(reply, roomId);
     });
 
-    socket.on("change_emoji", (payload = {}) => {
-      const roomId = String(payload.roomId || socket.data.roomId || "").toUpperCase();
+    on("change_emoji", (payload, reply) => {
+      const roomId = resolveRoomId(payload);
       const emoji = String(payload.emoji || "").trim();
-      const participantId = socket.data.participantId || socket.id;
+      const participantId = currentParticipantId();
 
       if (!roomId || !emoji) {
-        socket.emit("error", "Invalid emoji payload");
+        reply.fail(ERROR_CODES.INVALID_PAYLOAD, "Invalid emoji payload");
         return;
       }
 
       const room = getRoom(roomId);
       if (!room) {
-        socket.emit("room_not_found");
+        roomNotFound(reply);
         return;
       }
 
       setParticipantEmoji(roomId, participantId, emoji);
       touchRoom(roomId);
       emitRoom(roomId);
+      replyWithState(reply, roomId);
     });
 
-    socket.on("update_profile", (payload = {}) => {
-      const roomId = String(payload.roomId || socket.data.roomId || "").toUpperCase();
+    on("update_profile", (payload, reply) => {
+      const roomId = resolveRoomId(payload);
       const name = String(payload.name || "").trim();
       const emoji = String(payload.emoji || "").trim();
-      const participantId = socket.data.participantId || socket.id;
+      const participantId = currentParticipantId();
 
       if (!roomId) {
-        socket.emit("error", "Invalid profile payload");
+        reply.fail(ERROR_CODES.INVALID_PAYLOAD, "Invalid profile payload");
         return;
       }
 
       const room = getRoom(roomId);
       if (!room) {
-        socket.emit("room_not_found");
+        roomNotFound(reply);
         return;
       }
 
       setParticipantProfile(roomId, participantId, { name, emoji });
       touchRoom(roomId);
       emitRoom(roomId);
+      replyWithState(reply, roomId);
     });
 
-    socket.on("update_story", (payload = {}) => {
-      const roomId = String(payload.roomId || socket.data.roomId || "").toUpperCase();
+    on("update_story", (payload, reply) => {
+      const roomId = resolveRoomId(payload);
       const story = String(payload.story || "");
-      const participantId = socket.data.participantId || socket.id;
       const room = getRoom(roomId);
 
       if (!room) {
-        socket.emit("room_not_found");
+        roomNotFound(reply);
         return;
       }
 
-      const participant = room.participants.find((item) => item.id === participantId);
-      if (!participant || !participant.isHost) {
-        socket.emit("not_authorized");
+      if (!requireHost(room, reply)) {
         return;
       }
 
       setRoomStory(roomId, story);
       touchRoom(roomId);
       emitRoom(roomId);
+      replyWithState(reply, roomId);
     });
 
-    socket.on("start_timer", (payload = {}) => {
-      const roomId = String(payload.roomId || socket.data.roomId || "").toUpperCase();
+    on("start_timer", (payload, reply) => {
+      const roomId = resolveRoomId(payload);
       const duration = Number(payload.duration);
-      const participantId = socket.data.participantId || socket.id;
       const room = getRoom(roomId);
 
       if (!room) {
-        socket.emit("room_not_found");
+        roomNotFound(reply);
         return;
       }
 
-      const participant = room.participants.find((item) => item.id === participantId);
-      if (!participant || !participant.isHost) {
-        socket.emit("not_authorized");
+      if (!requireHost(room, reply)) {
         return;
       }
 
-      const validDurations = [5, 10, 15, 20, 25, 30];
-      if (!validDurations.includes(duration)) {
-        socket.emit("error", "Invalid timer duration");
+      if (!VALID_TIMER_DURATIONS.includes(duration)) {
+        reply.fail(ERROR_CODES.INVALID_TIMER_DURATION, "Invalid timer duration", {
+          details: { allowed: VALID_TIMER_DURATIONS },
+        });
         return;
       }
 
       if (room.revealed) {
+        // Historically silent for clients without an ack.
+        reply.fail(ERROR_CODES.ALREADY_REVEALED, "Votes are already revealed. Reset the round first.", {
+          legacyEvent: null,
+        });
         return;
       }
 
       // Cancel any existing timer for this room
-      if (roomTimers.has(roomId)) {
-        clearTimeout(roomTimers.get(roomId));
-        roomTimers.delete(roomId);
-      }
+      clearRoomTimer(roomId);
 
       const endsAt = Date.now() + duration * 1000;
       setRoomTimer(roomId, endsAt);
       touchRoom(roomId);
       emitRoom(roomId);
+      replyWithState(reply, roomId);
 
       const handle = setTimeout(() => {
         try {
@@ -441,90 +509,74 @@ app.prepare().then(() => {
       roomTimers.set(roomId, handle);
     });
 
-    socket.on("reveal_votes", (payload = {}) => {
-      const roomId = String(payload.roomId || socket.data.roomId || "").toUpperCase();
-      const participantId = socket.data.participantId || socket.id;
+    on("reveal_votes", (payload, reply) => {
+      const roomId = resolveRoomId(payload);
       const room = getRoom(roomId);
 
       if (!room) {
-        socket.emit("room_not_found");
+        roomNotFound(reply);
         return;
       }
 
-      const participant = room.participants.find((item) => item.id === participantId);
-      if (!participant || !participant.isHost) {
-        socket.emit("not_authorized");
+      if (!requireHost(room, reply)) {
         return;
       }
 
-      // Cancel any running timer for this room
-      if (roomTimers.has(roomId)) {
-        clearTimeout(roomTimers.get(roomId));
-        roomTimers.delete(roomId);
-      }
-
+      clearRoomTimer(roomId);
       revealVotes(roomId);
       touchRoom(roomId);
       emitRoom(roomId);
+      replyWithState(reply, roomId);
     });
 
-    socket.on("reset_round", (payload = {}) => {
-      const roomId = String(payload.roomId || socket.data.roomId || "").toUpperCase();
-      const participantId = socket.data.participantId || socket.id;
+    on("reset_round", (payload, reply) => {
+      const roomId = resolveRoomId(payload);
       const room = getRoom(roomId);
 
       if (!room) {
-        socket.emit("room_not_found");
+        roomNotFound(reply);
         return;
       }
 
-      const participant = room.participants.find((item) => item.id === participantId);
-      if (!participant || !participant.isHost) {
-        socket.emit("not_authorized");
+      if (!requireHost(room, reply)) {
         return;
       }
 
-      // Cancel any running timer for this room
-      if (roomTimers.has(roomId)) {
-        clearTimeout(roomTimers.get(roomId));
-        roomTimers.delete(roomId);
-      }
-
+      clearRoomTimer(roomId);
       resetRound(roomId);
       touchRoom(roomId);
       emitRoom(roomId);
+      replyWithState(reply, roomId);
     });
 
-    socket.on("remove_participant", (payload = {}) => {
-      const roomId = String(payload.roomId || socket.data.roomId || "").toUpperCase();
+    on("remove_participant", (payload, reply) => {
+      const roomId = resolveRoomId(payload);
       const targetParticipantId = String(payload.participantId || "").trim();
-      const participantId = socket.data.participantId || socket.id;
+      const participantId = currentParticipantId();
       const room = getRoom(roomId);
 
       if (!room) {
-        socket.emit("room_not_found");
+        roomNotFound(reply);
         return;
       }
 
       if (!targetParticipantId) {
-        socket.emit("error", "Invalid participant removal payload");
+        reply.fail(ERROR_CODES.INVALID_PAYLOAD, "Invalid participant removal payload");
         return;
       }
 
-      const participant = room.participants.find((item) => item.id === participantId);
-      if (!participant || !participant.isHost) {
-        socket.emit("not_authorized");
+      if (!requireHost(room, reply)) {
         return;
       }
 
       if (targetParticipantId === participantId) {
-        socket.emit("error", "Host cannot remove themselves");
+        reply.fail(ERROR_CODES.CANNOT_REMOVE_SELF, "Host cannot remove themselves");
         return;
       }
 
       const target = room.participants.find((item) => item.id === targetParticipantId);
       if (!target) {
-        socket.emit("error", "Participant not found");
+        reply.fail(ERROR_CODES.PARTICIPANT_NOT_FOUND, "Participant not found");
         return;
       }
 
@@ -544,6 +596,7 @@ app.prepare().then(() => {
       }
 
       emitRoom(roomId);
+      replyWithState(reply, roomId);
     });
 
     socket.on("disconnect", () => {
