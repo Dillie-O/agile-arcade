@@ -17,6 +17,8 @@ const {
   resetRound,
   roomToSnapshot,
   isValidVote,
+  claimHost,
+  secretsMatch,
 } = require("../server/rooms");
 
 // Mirror of toSafeHttpUrl from src/app/game/[roomId]/room-client.tsx
@@ -553,5 +555,52 @@ describe("createResponder", () => {
     const [, message, detail] = socket.emitted[0];
     assert.equal(message, "Invalid vote value");
     assert.equal(detail.code, "INVALID_VOTE");
+  });
+});
+
+// ─── host keys and rejoin tokens ─────────────────────────────────────────────
+
+describe("host keys and rejoin tokens", () => {
+  beforeEach(() => rooms.clear());
+
+  it("gives each room a host key and each participant a distinct rejoin token", () => {
+    const room = createRoom("fibonacci");
+    assert.equal(typeof room.hostKey, "string");
+    assert.ok(room.hostKey.length >= 16);
+    const a = addParticipant(room.id, { id: "a", name: "A", emoji: "🎮" });
+    const b = addParticipant(room.id, { id: "b", name: "B", emoji: "🎮" });
+    assert.ok(a.rejoinToken && b.rejoinToken);
+    assert.notEqual(a.rejoinToken, b.rejoinToken);
+  });
+
+  it("keeps secrets out of snapshots and across round resets", () => {
+    const room = createRoom("fibonacci");
+    const a = addParticipant(room.id, { id: "a", name: "A", emoji: "🎮" });
+    const token = a.rejoinToken;
+    const text = JSON.stringify(roomToSnapshot(getRoom(room.id)));
+    assert.ok(!text.includes(room.hostKey));
+    assert.ok(!text.includes(token));
+    resetRound(room.id);
+    assert.equal(getRoom(room.id).participants[0].rejoinToken, token);
+  });
+
+  it("claimHost makes exactly one host", () => {
+    const room = createRoom("fibonacci");
+    addParticipant(room.id, { id: "a", name: "A", emoji: "🎮" });
+    addParticipant(room.id, { id: "b", name: "B", emoji: "🎮" });
+    assert.equal(claimHost(room.id, "b"), true);
+    assert.deepEqual(
+      getRoom(room.id).participants.map((p) => p.isHost),
+      [false, true]
+    );
+    assert.equal(claimHost(room.id, "missing"), false);
+  });
+
+  it("secretsMatch only accepts equal non-empty strings", () => {
+    assert.equal(secretsMatch("abc", "abc"), true);
+    assert.equal(secretsMatch("abc", "abd"), false);
+    assert.equal(secretsMatch("abc", "abcd"), false);
+    assert.equal(secretsMatch("", ""), false);
+    assert.equal(secretsMatch(undefined, "abc"), false);
   });
 });

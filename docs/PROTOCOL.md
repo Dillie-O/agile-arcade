@@ -21,7 +21,7 @@ Both need a running server (`npm run dev`) and honour `AGILE_ARCADE_BASE_URL`
 ```js
 const { io } = require("socket.io-client");
 
-const { roomId } = await (
+const { roomId, hostKey } = await (
   await fetch(`${base}/api/create-room`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -34,8 +34,9 @@ socket.on("room_state", (state) => console.log(state)); // every change, for eve
 
 // Every event accepts an ack callback; emitWithAck turns it into a promise.
 const joined = await socket.emitWithAck("join_room", {
-  roomId, name: "Robo Rita", emoji: "🤖", participantId: crypto.randomUUID(),
+  roomId, name: "Robo Rita", emoji: "🤖", participantId: crypto.randomUUID(), hostKey,
 });
+// keep joined.rejoinToken private: it is the only way back into this seat
 const vote = await socket.emitWithAck("cast_vote", { roomId, value: "5" });
 if (!vote.ok) console.error(vote.error.code, vote.error.message);
 ```
@@ -53,8 +54,12 @@ Request body (JSON, optional, at most 1 KB):
 Response `200`:
 
 ```json
-{ "roomId": "K7QX2M" }
+{ "roomId": "K7QX2M", "hostKey": "q3J0…" }
 ```
+
+`hostKey` is a secret. Whoever joins with it becomes host (see
+[Host rules](#host-rules)); it never appears in a room snapshot. Keep it out of
+logs and shared links.
 
 Room ids are six characters from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`. Events
 accept them in any case; the server upper-cases them. A body over 1 KB gets
@@ -77,7 +82,7 @@ joined.
 
 | Event | Payload | Who | Effect |
 |---|---|---|---|
-| `join_room` | `{ roomId, name, emoji?, participantId? }` | anyone | Joins (or rejoins) as a participant. See [Joining](#joining). |
+| `join_room` | `{ roomId, name, emoji?, participantId?, hostKey?, rejoinToken? }` | anyone | Joins (or rejoins) as a participant. See [Joining](#joining). |
 | `join_viewer` | `{ roomId }` | anyone | Watches without a seat (kiosk mode). Only one viewer per room. |
 | `cast_vote` | `{ roomId, value }` | participant | Records or changes your vote. See [Voting](#voting). |
 | `change_emoji` | `{ roomId, emoji }` | participant | Changes your avatar. |
@@ -116,7 +121,13 @@ payload)`). The server calls it exactly once:
 { "ok": false, "error": { "code": "RATE_LIMITED", "message": "Voting too fast. Try again in a moment.", "retryAfterMs": 320 } }
 ```
 
-`join_room` also returns `participantId`, the id you were seated under.
+`join_room` also returns:
+
+| Field | Meaning |
+|---|---|
+| `participantId` | The id you were seated under. |
+| `rejoinToken` | Private secret for this seat; send it to reclaim the seat after a disconnect. Only ever sent to you, in this ack. |
+| `isHost` | Whether you are the host. |
 
 Without a callback, nothing changes from the original protocol: successes are
 silent (watch `room_state`) and failures arrive as the events above. With a
@@ -140,6 +151,8 @@ the code; the message is for people and may change.
 | `PARTICIPANT_NOT_FOUND` | `remove_participant` | No participant with that id in the room. | `error` |
 | `CANNOT_REMOVE_SELF` | `remove_participant` | The host tried to remove themselves. | `error` |
 | `KIOSK_OCCUPIED` | `join_viewer` | The room already has a viewer. | `kiosk_occupied` |
+| `INVALID_HOST_KEY` | `join_room` | `hostKey` was sent but does not match the room. You were not seated. | `error` |
+| `INVALID_REJOIN_TOKEN` | `join_room` | `participantId` belongs to a seat you are not holding, and `rejoinToken` is missing or wrong. You were not seated. | `error` |
 | `INTERNAL_ERROR` | all | Unexpected server failure. | `error` |
 
 Extra fields (`retryAfterMs`, `allowed`) sit next to `code` and `message` in the
@@ -179,13 +192,19 @@ only `hasVoted` tells you who is done.
 
 - `name` is required (trimmed). `emoji` defaults to `🎮`.
 - `participantId` is your stable identity. Generate a UUID and reuse it for
-  every reconnect; if you omit it the socket id is used, and you cannot reclaim
-  the seat later.
-- If `participantId` is already in the room and its socket is disconnected,
-  joining with it reclaims the seat — votes and host status included — and
-  updates the name and emoji.
+  every reconnect; if you omit it the socket id is used.
+- Joining with a new `participantId` creates a seat and returns its
+  `rejoinToken` in the ack.
+- Participant ids are public — every snapshot lists them — so they are not
+  enough to take a seat. To reclaim a disconnected seat (votes and host status
+  included), send its `participantId` **and** `rejoinToken`. Without the right
+  token the join fails with `INVALID_REJOIN_TOKEN`. The token stays the same
+  for the life of the seat. A socket repeating `join_room` for the seat it
+  already holds needs no token.
 - If `participantId` belongs to a socket that is still connected, the server
   ignores it and seats you under your socket id instead.
+- `hostKey` (optional) must match the room's key or the join fails with
+  `INVALID_HOST_KEY`. With the right key you become host.
 
 ### Disconnects
 
@@ -197,7 +216,11 @@ own: the removal shows up in the next `room_state`.
 
 ## Host rules
 
-- The first participant to join a room is the host.
+- Joining with the room's `hostKey` makes you host, taking the role from
+  whoever had it. The key can be used again — for example by a bot that
+  reconnects under a new `participantId`.
+- Without a `hostKey`, the first participant to join a room is the host. (The
+  web UI sends the creator's key automatically on their first join.)
 - Only the host may `update_story`, `start_timer`, `reveal_votes`,
   `reset_round` and `remove_participant`. Anyone else gets `not_authorized`.
 - A disconnected host keeps the role during the grace period. When the host is
