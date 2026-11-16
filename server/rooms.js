@@ -16,6 +16,8 @@ const isValidVote = (deckType, value) => {
   return deck ? deck.includes(value) : false;
 };
 
+const getDeckValues = (deckType) => [...(VALID_VOTES[deckType] || [])];
+
 const generateRoomId = () => {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let id = "";
@@ -299,5 +301,6 @@ module.exports = {
   resetRound,
   roomToSnapshot,
   isValidVote,
+  getDeckValues,
   startCleanupJob,
 };

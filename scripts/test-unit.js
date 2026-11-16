@@ -495,3 +495,63 @@ describe("isUnanimousRound (celebration rule)", () => {
     assert.equal(isUnanimousRound(["☕", "?"]), false);
   });
 });
+
+// ─── protocol.js ─────────────────────────────────────────────────────────────
+
+const { ERROR_CODES, normalizeArgs, createResponder } = require("../server/protocol");
+
+const fakeSocket = () => {
+  const emitted = [];
+  return { emitted, emit: (...args) => emitted.push(args) };
+};
+
+describe("normalizeArgs", () => {
+  it("accepts an ack in place of the payload", () => {
+    const ack = () => {};
+    const result = normalizeArgs(ack);
+    assert.deepEqual(result.payload, {});
+    assert.equal(result.ack, ack);
+  });
+
+  it("replaces non-object payloads with an empty object", () => {
+    assert.deepEqual(normalizeArgs(null).payload, {});
+    assert.deepEqual(normalizeArgs("ROOM").payload, {});
+    assert.equal(normalizeArgs({ roomId: "A" }, "not a function").ack, null);
+  });
+});
+
+describe("createResponder", () => {
+  it("replies through the ack and emits nothing when a callback is given", () => {
+    const socket = fakeSocket();
+    const replies = [];
+    const reply = createResponder(socket, (r) => replies.push(r));
+    reply.fail(ERROR_CODES.RATE_LIMITED, "Too fast", { details: { retryAfterMs: 120 } });
+    assert.deepEqual(replies, [{ ok: false, error: { code: "RATE_LIMITED", message: "Too fast", retryAfterMs: 120 } }]);
+    assert.equal(socket.emitted.length, 0);
+  });
+
+  it("replies only once", () => {
+    const replies = [];
+    const reply = createResponder(fakeSocket(), (r) => replies.push(r));
+    reply.ok({ state: null });
+    reply.fail(ERROR_CODES.INTERNAL_ERROR, "late");
+    assert.deepEqual(replies, [{ ok: true, state: null }]);
+  });
+
+  it("falls back to the legacy events without a callback", () => {
+    const socket = fakeSocket();
+    createResponder(socket, null).fail(ERROR_CODES.INVALID_VOTE, "Invalid vote value");
+    createResponder(socket, null).fail(ERROR_CODES.ROOM_NOT_FOUND, "Room not found");
+    createResponder(socket, null).fail(ERROR_CODES.NOT_HOST, "Only the host can do that");
+    createResponder(socket, null).fail(ERROR_CODES.NOT_JOINED, "Join first", { legacyEvent: "not_authorized" });
+    createResponder(socket, null).fail(ERROR_CODES.ALREADY_REVEALED, "Revealed", { legacyEvent: null });
+    createResponder(socket, null).ok({ state: null });
+    assert.deepEqual(
+      socket.emitted.map(([event]) => event),
+      ["error", "room_not_found", "not_authorized", "not_authorized"]
+    );
+    const [, message, detail] = socket.emitted[0];
+    assert.equal(message, "Invalid vote value");
+    assert.equal(detail.code, "INVALID_VOTE");
+  });
+});
