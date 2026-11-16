@@ -102,7 +102,13 @@ npm run test:smoke
 AGILE_ARCADE_BASE_URL=http://127.0.0.1:3000 npm run test:smoke
 ```
 
-The smoke test validates: room creation, join, hidden voting, auto-reveal on all-voted, reveal, reset, and host transfer on disconnect.
+The smoke test validates: room creation, join, hidden voting, auto-reveal on all-voted, reveal, reset, reconnecting within the grace period, and host removal of a participant.
+
+**Run the bot demo** (also requires the app to be running) — see [docs/PROTOCOL.md](docs/PROTOCOL.md):
+
+```bash
+npm run bot:demo
+```
 
 **Lint:**
 
@@ -131,6 +137,7 @@ Built on **Next.js 16** (App Router) with a custom Node.js server (`server.js`) 
 | `src/components/` | UI components (CardDeck, ParticipantList, StatusBar, etc.) |
 | `src/lib/` | Shared types and constants |
 | `src/app/globals.css` | Design system — tokens, primitive classes, theme |
+| `docs/PROTOCOL.md` | HTTP + Socket.IO protocol for bots and other headless clients |
 
 ---
 
@@ -144,35 +151,17 @@ Built on **Next.js 16** (App Router) with a custom Node.js server (`server.js`) 
 
 ---
 
-## WebSocket API
+## Protocol (bots and headless clients)
 
-<details>
-<summary>Client → Server events</summary>
+Agile Arcade can be played without the browser: one HTTP call creates a room and a handful of Socket.IO events do the rest. **[docs/PROTOCOL.md](docs/PROTOCOL.md)** documents every endpoint, event, payload and the game rules (host, voting, auto-reveal).
 
-| Event | Payload |
-|---|---|
-| `join_room` | `{ roomId, name, emoji, participantId }` |
-| `cast_vote` | `{ roomId, value }` |
-| `change_emoji` | `{ roomId, emoji }` |
-| `update_story` | `{ roomId, story }` |
-| `reveal_votes` | `{ roomId }` |
-| `reset_round` | `{ roomId }` |
-| `remove_participant` | `{ roomId, participantId }` (host only) |
+[`scripts/smoke-realtime.js`](scripts/smoke-realtime.js) is the reference client. For a quick, readable example, [`scripts/bot-demo.js`](scripts/bot-demo.js) plays one round with bots:
 
-</details>
+```bash
+npm run bot:demo -- --bots 3 --deck fibonacci
+```
 
-<details>
-<summary>Server → Client events</summary>
-
-| Event | Description |
-|---|---|
-| `room_state` | Full room snapshot broadcast after every state change |
-| `room_not_found` | Room ID does not exist or has expired |
-| `error` | Validation or permission error message |
-| `not_authorized` | Action requires host privileges |
-| `removed_from_room` | Sent to a participant after the host removes them from the room |
-
-</details>
+Open the kiosk URL it prints to watch the bots play.
 
 ---
 
