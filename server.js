@@ -8,6 +8,7 @@ const {
   roomToSnapshot,
   touchRoom,
   addParticipant,
+  claimHost,
   removeParticipant,
   markParticipantDisconnected,
   reconnectParticipant,
@@ -20,6 +21,7 @@ const {
   resetRound,
   isValidVote,
   getDeckValues,
+  secretsMatch,
   startCleanupJob,
 } = require("./server/rooms");
 const { ERROR_CODES, normalizeArgs, createResponder } = require("./server/protocol");
@@ -90,7 +92,9 @@ app.prepare().then(() => {
       const room = createRoom(deckType);
       res.statusCode = 200;
       res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ roomId: room.id }));
+      // hostKey is a secret: whoever joins with it becomes host. It is never
+      // included in room snapshots.
+      res.end(JSON.stringify({ roomId: room.id, hostKey: room.hostKey }));
       return;
     }
 
@@ -285,6 +289,8 @@ app.prepare().then(() => {
       const name = String(payload.name || "").trim();
       const emoji = String(payload.emoji || "🎮").trim() || "🎮";
       const clientId = String(payload.participantId || "").trim();
+      const hostKey = payload.hostKey == null ? "" : String(payload.hostKey);
+      const rejoinToken = payload.rejoinToken == null ? "" : String(payload.rejoinToken);
 
       // If the requested ID is already owned by a different active socket, don't
       // allow impersonation — fall back to socket.id for this connection.
@@ -305,6 +311,24 @@ app.prepare().then(() => {
         return;
       }
 
+      if (hostKey && !secretsMatch(hostKey, room.hostKey)) {
+        reply.fail(ERROR_CODES.INVALID_HOST_KEY, "That host key does not match this room");
+        return;
+      }
+
+      // Participant ids are public (every snapshot lists them), so reclaiming a
+      // seat someone else is not actively holding takes that seat's private
+      // rejoin token. A socket repeating its own join needs no token.
+      const existing = room.participants.find((p) => p.id === participantId);
+      const ownsSeat = activeParticipants.get(participantId) === socket.id;
+      if (existing && !ownsSeat && !secretsMatch(rejoinToken, existing.rejoinToken)) {
+        reply.fail(
+          ERROR_CODES.INVALID_REJOIN_TOKEN,
+          "That seat is taken. Rejoin with its rejoinToken, or join with a new participantId."
+        );
+        return;
+      }
+
       if (socket.data.viewerRoomId) {
         const prevViewerRoom = socket.data.viewerRoomId;
         if (kioskSockets.get(prevViewerRoom) === socket.id) {
@@ -319,18 +343,23 @@ app.prepare().then(() => {
       activeParticipants.set(participantId, socket.id);
       socket.data.viewerRoomId = undefined;
 
-      const existing = room.participants.find((p) => p.id === participantId);
-      if (existing) {
-        existing.name = name;
-        existing.emoji = emoji;
+      let seat = existing;
+      if (seat) {
+        seat.name = name;
+        seat.emoji = emoji;
         reconnectParticipant(roomId, participantId);
       } else {
-        addParticipant(roomId, { id: participantId, name, emoji });
+        seat = addParticipant(roomId, { id: participantId, name, emoji });
+      }
+
+      if (hostKey) {
+        claimHost(roomId, participantId);
       }
 
       touchRoom(roomId);
       emitRoom(roomId);
-      replyWithState(reply, roomId, { participantId });
+      // rejoinToken goes to this socket only, never into a broadcast.
+      replyWithState(reply, roomId, { participantId, rejoinToken: seat.rejoinToken, isHost: seat.isHost });
     });
 
     on("cast_vote", (payload, reply) => {

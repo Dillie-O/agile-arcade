@@ -15,7 +15,7 @@ import { ResultsSummary } from "@/components/ResultsSummary";
 import { NgrokPanel } from "@/components/NgrokPanel";
 import { StatusBar } from "@/components/StatusBar";
 import { UnanimousBanner } from "@/components/UnanimousBanner";
-import { isUnanimousRound, randomEmoji } from "@/lib/constants";
+import { getHostKeyStorageKey, isUnanimousRound, randomEmoji } from "@/lib/constants";
 import { tip } from "@/lib/tooltip";
 import { Identity, Participant, Room, SocketAck } from "@/lib/types";
 
@@ -171,17 +171,73 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
     const socket = io({ transports: ["websocket", "polling"] });
     socketRef.current = socket;
 
+    const readHostKey = () => {
+      try {
+        return localStorage.getItem(getHostKeyStorageKey(roomId));
+      } catch {
+        return null;
+      }
+    };
+
+    const forgetHostKey = () => {
+      try {
+        localStorage.removeItem(getHostKeyStorageKey(roomId));
+      } catch {
+        // Nothing to clean up.
+      }
+    };
+
     const emitJoin = () => {
       const current = identityRef.current;
       if (!current) {
         return;
       }
-      socket.emit("join_room", {
-        roomId,
-        name: current.name,
-        emoji: current.emoji,
-        participantId: current.participantId,
-      });
+      const hostKey = readHostKey();
+      socket.emit(
+        "join_room",
+        {
+          roomId,
+          name: current.name,
+          emoji: current.emoji,
+          participantId: current.participantId,
+          rejoinToken: current.rejoinToken,
+          ...(hostKey ? { hostKey } : {}),
+        },
+        (response: SocketAck) => {
+          if (socketRef.current !== socket) {
+            return;
+          }
+          if (response?.ok) {
+            // The host key has done its job once the creator is seated.
+            if (hostKey) forgetHostKey();
+            const latest = identityRef.current;
+            if (latest && response.rejoinToken && latest.rejoinToken !== response.rejoinToken) {
+              const next = { ...latest, rejoinToken: response.rejoinToken };
+              identityRef.current = next;
+              localStorage.setItem(getIdentityKey(roomId), JSON.stringify(next));
+              // Same participantId, so this does not reconnect the socket.
+              setIdentity(next);
+            }
+            return;
+          }
+          switch (response?.error?.code) {
+            case "ROOM_NOT_FOUND":
+              setRoomNotFound(true);
+              return;
+            case "INVALID_HOST_KEY":
+              forgetHostKey();
+              emitJoin();
+              return;
+            case "INVALID_REJOIN_TOKEN":
+              // This seat cannot be reclaimed from here; ask for a fresh join.
+              localStorage.removeItem(getIdentityKey(roomId));
+              setIdentity(null);
+              return;
+            default:
+              setError(response?.error?.message || "Something went wrong.");
+          }
+        }
+      );
     };
 
     socket.on("connect", () => {

@@ -1,3 +1,5 @@
+const { randomBytes, timingSafeEqual } = require("crypto");
+
 const ROOM_TTL_MS = 2 * 60 * 60 * 1000;
 const _graceMsParsed = parseInt(process.env.DISCONNECT_GRACE_MS, 10);
 const DISCONNECT_GRACE_MS = Number.isNaN(_graceMsParsed) ? 30 * 1000 : Math.max(0, _graceMsParsed);
@@ -14,6 +16,20 @@ const VALID_VOTES = {
 const isValidVote = (deckType, value) => {
   const deck = VALID_VOTES[deckType];
   return deck ? deck.includes(value) : false;
+};
+
+// Unguessable secret for host keys and rejoin tokens. Never part of a snapshot.
+const generateSecret = () => randomBytes(24).toString("base64url");
+
+// Constant-time comparison of two secrets; false for anything but two equal,
+// non-empty strings.
+const secretsMatch = (provided, expected) => {
+  if (typeof provided !== "string" || typeof expected !== "string" || !provided || !expected) {
+    return false;
+  }
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
 };
 
 const getDeckValues = (deckType) => [...(VALID_VOTES[deckType] || [])];
@@ -41,6 +57,7 @@ const createRoom = (deckType = "fibonacci") => {
   const room = {
     id: roomId,
     deckType: normalizedDeckType,
+    hostKey: generateSecret(),
     participants: [],
     story: "",
     revealed: false,
@@ -80,11 +97,25 @@ const addParticipant = (roomId, participant) => {
     hasVoted: false,
     isHost: room.participants.length === 0,
     disconnectedAt: null,
+    rejoinToken: generateSecret(),
   };
 
   room.participants.push(entry);
   touchRoom(roomId);
   return entry;
+};
+
+// Makes the given participant the only host.
+const claimHost = (roomId, participantId) => {
+  const room = getRoom(roomId);
+  if (!room || !room.participants.some((item) => item.id === participantId)) {
+    return false;
+  }
+
+  for (const item of room.participants) {
+    item.isHost = item.id === participantId;
+  }
+  return true;
 };
 
 const removeParticipant = (roomId, participantId) => {
@@ -288,6 +319,7 @@ module.exports = {
   getRoom,
   touchRoom,
   addParticipant,
+  claimHost,
   removeParticipant,
   markParticipantDisconnected,
   reconnectParticipant,
@@ -302,5 +334,6 @@ module.exports = {
   roomToSnapshot,
   isValidVote,
   getDeckValues,
+  secretsMatch,
   startCleanupJob,
 };

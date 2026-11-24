@@ -25,8 +25,10 @@ export type Identity = {
   name: string;
   emoji: string;
   participantId?: string;
+  /** Private token from the join ack; needed to reclaim this seat after a disconnect. */
+  rejoinToken?: string;
 };
 /** Reply to a Socket.IO event sent with an ack callback. See docs/PROTOCOL.md. */
 export type SocketAck =
-  | { ok: true; state: Room | null }
+  | { ok: true; state: Room | null; participantId?: string; rejoinToken?: string; isHost?: boolean }
   | { ok: false; error: { code: string; message: string; retryAfterMs?: number } };
