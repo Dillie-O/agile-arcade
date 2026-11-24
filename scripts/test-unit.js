@@ -17,6 +17,9 @@ const {
   resetRound,
   roomToSnapshot,
   isValidVote,
+  claimHost,
+  secretsMatch,
+  shouldAutoReveal,
 } = require("../server/rooms");
 
 // Mirror of toSafeHttpUrl from src/app/game/[roomId]/room-client.tsx
@@ -493,5 +496,174 @@ describe("isUnanimousRound (celebration rule)", () => {
 
   it("treats differing abstain-only rounds as no celebration", () => {
     assert.equal(isUnanimousRound(["☕", "?"]), false);
+  });
+});
+
+// ─── protocol.js ─────────────────────────────────────────────────────────────
+
+const { ERROR_CODES, normalizeArgs, createResponder } = require("../server/protocol");
+
+const fakeSocket = () => {
+  const emitted = [];
+  return { emitted, emit: (...args) => emitted.push(args) };
+};
+
+describe("normalizeArgs", () => {
+  it("accepts an ack in place of the payload", () => {
+    const ack = () => {};
+    const result = normalizeArgs(ack);
+    assert.deepEqual(result.payload, {});
+    assert.equal(result.ack, ack);
+  });
+
+  it("replaces non-object payloads with an empty object", () => {
+    assert.deepEqual(normalizeArgs(null).payload, {});
+    assert.deepEqual(normalizeArgs("ROOM").payload, {});
+    assert.equal(normalizeArgs({ roomId: "A" }, "not a function").ack, null);
+  });
+});
+
+describe("createResponder", () => {
+  it("replies through the ack and emits nothing when a callback is given", () => {
+    const socket = fakeSocket();
+    const replies = [];
+    const reply = createResponder(socket, (r) => replies.push(r));
+    reply.fail(ERROR_CODES.RATE_LIMITED, "Too fast", { details: { retryAfterMs: 120 } });
+    assert.deepEqual(replies, [{ ok: false, error: { code: "RATE_LIMITED", message: "Too fast", retryAfterMs: 120 } }]);
+    assert.equal(socket.emitted.length, 0);
+  });
+
+  it("replies only once", () => {
+    const replies = [];
+    const reply = createResponder(fakeSocket(), (r) => replies.push(r));
+    reply.ok({ state: null });
+    reply.fail(ERROR_CODES.INTERNAL_ERROR, "late");
+    assert.deepEqual(replies, [{ ok: true, state: null }]);
+  });
+
+  it("falls back to the legacy events without a callback", () => {
+    const socket = fakeSocket();
+    createResponder(socket, null).fail(ERROR_CODES.INVALID_VOTE, "Invalid vote value");
+    createResponder(socket, null).fail(ERROR_CODES.ROOM_NOT_FOUND, "Room not found");
+    createResponder(socket, null).fail(ERROR_CODES.NOT_HOST, "Only the host can do that");
+    createResponder(socket, null).fail(ERROR_CODES.NOT_JOINED, "Join first", { legacyEvent: "not_authorized" });
+    createResponder(socket, null).fail(ERROR_CODES.ALREADY_REVEALED, "Revealed", { legacyEvent: null });
+    createResponder(socket, null).ok({ state: null });
+    assert.deepEqual(
+      socket.emitted.map(([event]) => event),
+      ["error", "room_not_found", "not_authorized", "not_authorized"]
+    );
+    const [, message, detail] = socket.emitted[0];
+    assert.equal(message, "Invalid vote value");
+    assert.equal(detail.code, "INVALID_VOTE");
+  });
+});
+
+// ─── host keys and rejoin tokens ─────────────────────────────────────────────
+
+describe("host keys and rejoin tokens", () => {
+  beforeEach(() => rooms.clear());
+
+  it("gives each room a host key and each participant a distinct rejoin token", () => {
+    const room = createRoom("fibonacci");
+    assert.equal(typeof room.hostKey, "string");
+    assert.ok(room.hostKey.length >= 16);
+    const a = addParticipant(room.id, { id: "a", name: "A", emoji: "🎮" });
+    const b = addParticipant(room.id, { id: "b", name: "B", emoji: "🎮" });
+    assert.ok(a.rejoinToken && b.rejoinToken);
+    assert.notEqual(a.rejoinToken, b.rejoinToken);
+  });
+
+  it("keeps secrets out of snapshots and across round resets", () => {
+    const room = createRoom("fibonacci");
+    const a = addParticipant(room.id, { id: "a", name: "A", emoji: "🎮" });
+    const token = a.rejoinToken;
+    const text = JSON.stringify(roomToSnapshot(getRoom(room.id)));
+    assert.ok(!text.includes(room.hostKey));
+    assert.ok(!text.includes(token));
+    resetRound(room.id);
+    assert.equal(getRoom(room.id).participants[0].rejoinToken, token);
+  });
+
+  it("claimHost makes exactly one host", () => {
+    const room = createRoom("fibonacci");
+    addParticipant(room.id, { id: "a", name: "A", emoji: "🎮" });
+    addParticipant(room.id, { id: "b", name: "B", emoji: "🎮" });
+    assert.equal(claimHost(room.id, "b"), true);
+    assert.deepEqual(
+      getRoom(room.id).participants.map((p) => p.isHost),
+      [false, true]
+    );
+    assert.equal(claimHost(room.id, "missing"), false);
+  });
+
+  it("secretsMatch only accepts equal non-empty strings", () => {
+    assert.equal(secretsMatch("abc", "abc"), true);
+    assert.equal(secretsMatch("abc", "abd"), false);
+    assert.equal(secretsMatch("abc", "abcd"), false);
+    assert.equal(secretsMatch("", ""), false);
+    assert.equal(secretsMatch(undefined, "abc"), false);
+  });
+});
+
+// ─── auto-reveal and bots ────────────────────────────────────────────────────
+
+describe("shouldAutoReveal", () => {
+  beforeEach(() => rooms.clear());
+
+  const setup = () => {
+    const room = createRoom("fibonacci");
+    addParticipant(room.id, { id: "a", name: "A", emoji: "🎮" });
+    addParticipant(room.id, { id: "b", name: "B", emoji: "🎮" });
+    addParticipant(room.id, { id: "c", name: "C", emoji: "🎮" });
+    setParticipantVote(room.id, "a", "5");
+    setParticipantVote(room.id, "b", "8");
+    return getRoom(room.id);
+  };
+
+  it("waits while a connected participant has not voted", () => {
+    assert.equal(shouldAutoReveal(setup(), Date.now(), 5000), false);
+  });
+
+  it("keeps waiting for a participant who only just disconnected", () => {
+    const room = setup();
+    room.participants[2].disconnectedAt = 10_000;
+    assert.equal(shouldAutoReveal(room, 12_000, 5000), false);
+  });
+
+  it("stops waiting once the disconnect has settled", () => {
+    const room = setup();
+    room.participants[2].disconnectedAt = 10_000;
+    assert.equal(shouldAutoReveal(room, 15_000, 5000), true);
+  });
+
+  it("waits for everyone when settleMs is negative", () => {
+    const room = setup();
+    room.participants[2].disconnectedAt = 0;
+    assert.equal(shouldAutoReveal(room, 1_000_000, -1), false);
+  });
+
+  it("never reveals with no one present, or twice", () => {
+    const room = setup();
+    room.participants.forEach((p) => (p.disconnectedAt = 0));
+    assert.equal(shouldAutoReveal(room, 1_000_000, 5000), false);
+    room.participants.forEach((p) => (p.disconnectedAt = null));
+    setParticipantVote(room.id, "c", "3");
+    assert.equal(shouldAutoReveal(room, Date.now(), 5000), true);
+    revealVotes(room.id);
+    assert.equal(shouldAutoReveal(room, Date.now(), 5000), false);
+  });
+});
+
+describe("isBot", () => {
+  beforeEach(() => rooms.clear());
+
+  it("is false unless explicitly true, and appears in the snapshot", () => {
+    const room = createRoom("fibonacci");
+    addParticipant(room.id, { id: "h", name: "Human", emoji: "🎮" });
+    addParticipant(room.id, { id: "r", name: "Robot", emoji: "🤖", isBot: true });
+    addParticipant(room.id, { id: "s", name: "Sneaky", emoji: "🤖", isBot: "yes" });
+    const flags = roomToSnapshot(getRoom(room.id)).participants.map((p) => p.isBot);
+    assert.deepEqual(flags, [false, true, false]);
   });
 });

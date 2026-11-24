@@ -1,5 +1,43 @@
 # Changelog
 
+## [1.9.0] - 2026-11-16
+
+### Added
+`GET /api/rooms/:roomId` returns the same snapshot `room_state` broadcasts — votes hidden until revealed, no host key or rejoin tokens — or `404` with `ROOM_NOT_FOUND`. Reads do not touch the room's activity timestamp, so polling does not keep an idle room alive.
+
+`join_room` accepts `isBot: true`. Participants carry an `isBot` flag in the snapshot, and `ParticipantList` (player and kiosk views) shows a small 🤖 badge before a bot's name, with an "Automated player" tooltip and a screen-reader label. `scripts/bot-demo.js` sets the flag.
+
+### Changed
+Auto-reveal no longer waits for participants who have been disconnected for at least `AUTO_REVEAL_DISCONNECT_SETTLE_MS` (default 5 s). Before, a player who dropped without voting held the round open until the host revealed manually — eviction after the grace period removed them without re-checking the round, so it could stall indefinitely. The check now also runs when the settle window passes after a disconnect and when the host removes a participant. The short window keeps a person who is refreshing their page from being skipped; a negative value restores the old wait-for-everyone rule. The host's manual reveal is unchanged.
+
+---
+
+## [1.8.0] - 2026-11-16
+
+### Added
+`POST /api/create-room` returns a secret `hostKey` next to the `roomId`. Sending it with `join_room` makes that participant host, taking the role from whoever held it. Without a key, the first joiner is still host. The web UI keeps the key in `localStorage` and sends it on the creator's first join, so the person who created the room ends up host even if someone with the link gets in first.
+
+### Security
+Participant ids are broadcast in every `room_state`, and reclaiming a disconnected participant's seat used to need nothing more than that id — so anyone in the room could rejoin as a disconnected player, host included. `join_room` now returns a private `rejoinToken` in its ack, and reclaiming an existing seat requires it; a wrong or missing token fails with `INVALID_REJOIN_TOKEN`. The web UI stores the token with the player's identity and sends it on every reconnect, so refreshing the page or riding out a network blip keeps your seat as before. If a stored identity cannot reclaim its seat, the UI shows the join screen instead of failing silently.
+
+Clients that reconnect without an ack callback can no longer reclaim a seat, since the token is only delivered through the ack. See `docs/PROTOCOL.md`.
+
+---
+
+## [1.7.0] - 2026-11-16
+
+### Added
+Every Socket.IO client event now accepts an ack callback. The server answers exactly once with `{ ok: true, state }` (plus `participantId` for `join_room`) or `{ ok: false, error: { code, message } }`, so headless clients no longer have to infer success from the next `room_state`. Clients that do not pass a callback see no change: successes stay silent and failures still arrive as `room_not_found`, `not_authorized`, `kiosk_occupied` or `error`.
+
+Failures carry stable error codes (`INVALID_PAYLOAD`, `ROOM_NOT_FOUND`, `NOT_JOINED`, `NOT_HOST`, `INVALID_VOTE`, `RATE_LIMITED`, `INVALID_TIMER_DURATION`, `ALREADY_REVEALED`, `PARTICIPANT_NOT_FOUND`, `CANNOT_REMOVE_SELF`, `KIOSK_OCCUPIED`, `INTERNAL_ERROR`) beside the human-readable message. The `error` event keeps the message as its first argument and adds the structured error as a second; the other failure events now carry the structured error as their payload. All of it is documented in `docs/PROTOCOL.md`, alongside the new `npm run bot:demo` script.
+
+### Changed
+A vote sent less than 500 ms after the same socket's previous vote used to be dropped without a word. It is now rejected with `RATE_LIMITED` and a `retryAfterMs` hint. The web UI uses the hint to resend the latest card automatically, so changing your mind quickly keeps the last card you clicked instead of the first.
+
+Event handlers no longer throw on a `null` or non-object payload.
+
+---
+
 ## [1.6.1] - 2026-09-09
 
 ### Changed

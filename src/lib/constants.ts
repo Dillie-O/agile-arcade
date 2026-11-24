@@ -147,3 +147,6 @@ export const pickUnanimousTerms = (seed: number): [UnanimousTerm, UnanimousTerm]
 
   return [first, second];
 };
+
+/** localStorage key for the secret host key returned when a room is created. */
+export const getHostKeyStorageKey = (roomId: string) => `agile-arcade:${roomId}:hostKey`;

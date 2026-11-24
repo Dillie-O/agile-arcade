@@ -15,9 +15,9 @@ import { ResultsSummary } from "@/components/ResultsSummary";
 import { NgrokPanel } from "@/components/NgrokPanel";
 import { StatusBar } from "@/components/StatusBar";
 import { UnanimousBanner } from "@/components/UnanimousBanner";
-import { isUnanimousRound, randomEmoji } from "@/lib/constants";
+import { getHostKeyStorageKey, isUnanimousRound, randomEmoji } from "@/lib/constants";
 import { tip } from "@/lib/tooltip";
-import { Identity, Participant, Room } from "@/lib/types";
+import { Identity, Participant, Room, SocketAck } from "@/lib/types";
 
 type Props = {
   roomId: string;
@@ -52,6 +52,7 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
   const hostNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const storyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const voteRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
   const [storyDraft, setStoryDraft] = useState<string | null>(null);
   const [identity, setIdentity] = useState<Identity | null>(null);
@@ -79,6 +80,7 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
       if (storyDebounceRef.current) clearTimeout(storyDebounceRef.current);
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
       if (celebrationTimerRef.current) clearTimeout(celebrationTimerRef.current);
+      if (voteRetryRef.current) clearTimeout(voteRetryRef.current);
     };
   }, []);
 
@@ -169,17 +171,73 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
     const socket = io({ transports: ["websocket", "polling"] });
     socketRef.current = socket;
 
+    const readHostKey = () => {
+      try {
+        return localStorage.getItem(getHostKeyStorageKey(roomId));
+      } catch {
+        return null;
+      }
+    };
+
+    const forgetHostKey = () => {
+      try {
+        localStorage.removeItem(getHostKeyStorageKey(roomId));
+      } catch {
+        // Nothing to clean up.
+      }
+    };
+
     const emitJoin = () => {
       const current = identityRef.current;
       if (!current) {
         return;
       }
-      socket.emit("join_room", {
-        roomId,
-        name: current.name,
-        emoji: current.emoji,
-        participantId: current.participantId,
-      });
+      const hostKey = readHostKey();
+      socket.emit(
+        "join_room",
+        {
+          roomId,
+          name: current.name,
+          emoji: current.emoji,
+          participantId: current.participantId,
+          rejoinToken: current.rejoinToken,
+          ...(hostKey ? { hostKey } : {}),
+        },
+        (response: SocketAck) => {
+          if (socketRef.current !== socket) {
+            return;
+          }
+          if (response?.ok) {
+            // The host key has done its job once the creator is seated.
+            if (hostKey) forgetHostKey();
+            const latest = identityRef.current;
+            if (latest && response.rejoinToken && latest.rejoinToken !== response.rejoinToken) {
+              const next = { ...latest, rejoinToken: response.rejoinToken };
+              identityRef.current = next;
+              localStorage.setItem(getIdentityKey(roomId), JSON.stringify(next));
+              // Same participantId, so this does not reconnect the socket.
+              setIdentity(next);
+            }
+            return;
+          }
+          switch (response?.error?.code) {
+            case "ROOM_NOT_FOUND":
+              setRoomNotFound(true);
+              return;
+            case "INVALID_HOST_KEY":
+              forgetHostKey();
+              emitJoin();
+              return;
+            case "INVALID_REJOIN_TOKEN":
+              // This seat cannot be reclaimed from here; ask for a fresh join.
+              localStorage.removeItem(getIdentityKey(roomId));
+              setIdentity(null);
+              return;
+            default:
+              setError(response?.error?.message || "Something went wrong.");
+          }
+        }
+      );
     };
 
     socket.on("connect", () => {
@@ -336,9 +394,40 @@ export function GameRoom({ roomId, mode = "player" }: Props) {
     socketRef.current?.emit("change_emoji", { roomId, emoji });
   };
 
+  const sendVote = (value: string) => {
+    const socket = socketRef.current;
+    if (!socket) {
+      return;
+    }
+    socket.emit("cast_vote", { roomId, value }, (response: SocketAck) => {
+      if (response?.ok || socketRef.current !== socket) {
+        return;
+      }
+      if (response?.error?.code === "RATE_LIMITED") {
+        // Clicked again too quickly: resend once the window opens, so the
+        // last card picked is the one that counts.
+        if (voteRetryRef.current) clearTimeout(voteRetryRef.current);
+        voteRetryRef.current = setTimeout(() => {
+          voteRetryRef.current = null;
+          sendVote(value);
+        }, response.error.retryAfterMs ?? 500);
+        return;
+      }
+      if (response?.error?.code === "ROOM_NOT_FOUND") {
+        setRoomNotFound(true);
+        return;
+      }
+      setError(response?.error?.message || "Something went wrong.");
+    });
+  };
+
   const onCastVote = (value: string) => {
     setPendingVote(value);
-    socketRef.current?.emit("cast_vote", { roomId, value });
+    if (voteRetryRef.current) {
+      clearTimeout(voteRetryRef.current);
+      voteRetryRef.current = null;
+    }
+    sendVote(value);
   };
 
   const onRevealVotes = () => {

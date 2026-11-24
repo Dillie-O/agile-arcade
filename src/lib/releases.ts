@@ -32,6 +32,39 @@ export const LORE: string[] = [
  */
 export const RELEASES: Release[] = [
   {
+    version: "1.9.0",
+    date: "2026-11-16",
+    headline: "Robots at the table",
+    emoji: "🤖",
+    notes: [
+      "Bots that join a game wear a little 🤖 badge, so you always know who is human",
+      "A player who drops out without voting no longer keeps the round waiting forever",
+      "Refreshing your page is safe: the round still gives you a few seconds to come back",
+    ],
+  },
+  {
+    version: "1.8.0",
+    date: "2026-11-16",
+    headline: "Your seat, your crown",
+    emoji: "👑",
+    notes: [
+      "Whoever creates the room is the host, even if a teammate clicks the link first",
+      "Only you can take your seat back after a refresh or a dropped connection",
+      "Nobody can slip into a disconnected player’s chair — or the host’s",
+    ],
+  },
+  {
+    version: "1.7.0",
+    date: "2026-11-16",
+    headline: "Second thoughts welcome",
+    emoji: "🔁",
+    notes: [
+      "Change your card in a hurry and the last one you click is the one that counts",
+      "Before, a quick switch could quietly keep your first pick instead",
+      "Scripts and bots can now play along too, with a written guide to how the game talks",
+    ],
+  },
+  {
     version: "1.6.1",
     date: "2026-09-09",
     headline: "Patch notes without pausing the game",

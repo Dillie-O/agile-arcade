@@ -8,6 +8,8 @@ export type Participant = {
   hasVoted: boolean;
   isHost: boolean;
   isDisconnected: boolean;
+  /** Joined as an automated client (join_room with isBot: true). */
+  isBot?: boolean;
 };
 
 export type Room = {
@@ -25,4 +27,10 @@ export type Identity = {
   name: string;
   emoji: string;
   participantId?: string;
+  /** Private token from the join ack; needed to reclaim this seat after a disconnect. */
+  rejoinToken?: string;
 };
+/** Reply to a Socket.IO event sent with an ack callback. See docs/PROTOCOL.md. */
+export type SocketAck =
+  | { ok: true; state: Room | null; participantId?: string; rejoinToken?: string; isHost?: boolean }
+  | { ok: false; error: { code: string; message: string; retryAfterMs?: number } };
