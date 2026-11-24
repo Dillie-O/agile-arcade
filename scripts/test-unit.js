@@ -19,6 +19,7 @@ const {
   isValidVote,
   claimHost,
   secretsMatch,
+  shouldAutoReveal,
 } = require("../server/rooms");
 
 // Mirror of toSafeHttpUrl from src/app/game/[roomId]/room-client.tsx
@@ -602,5 +603,67 @@ describe("host keys and rejoin tokens", () => {
     assert.equal(secretsMatch("abc", "abcd"), false);
     assert.equal(secretsMatch("", ""), false);
     assert.equal(secretsMatch(undefined, "abc"), false);
+  });
+});
+
+// ─── auto-reveal and bots ────────────────────────────────────────────────────
+
+describe("shouldAutoReveal", () => {
+  beforeEach(() => rooms.clear());
+
+  const setup = () => {
+    const room = createRoom("fibonacci");
+    addParticipant(room.id, { id: "a", name: "A", emoji: "🎮" });
+    addParticipant(room.id, { id: "b", name: "B", emoji: "🎮" });
+    addParticipant(room.id, { id: "c", name: "C", emoji: "🎮" });
+    setParticipantVote(room.id, "a", "5");
+    setParticipantVote(room.id, "b", "8");
+    return getRoom(room.id);
+  };
+
+  it("waits while a connected participant has not voted", () => {
+    assert.equal(shouldAutoReveal(setup(), Date.now(), 5000), false);
+  });
+
+  it("keeps waiting for a participant who only just disconnected", () => {
+    const room = setup();
+    room.participants[2].disconnectedAt = 10_000;
+    assert.equal(shouldAutoReveal(room, 12_000, 5000), false);
+  });
+
+  it("stops waiting once the disconnect has settled", () => {
+    const room = setup();
+    room.participants[2].disconnectedAt = 10_000;
+    assert.equal(shouldAutoReveal(room, 15_000, 5000), true);
+  });
+
+  it("waits for everyone when settleMs is negative", () => {
+    const room = setup();
+    room.participants[2].disconnectedAt = 0;
+    assert.equal(shouldAutoReveal(room, 1_000_000, -1), false);
+  });
+
+  it("never reveals with no one present, or twice", () => {
+    const room = setup();
+    room.participants.forEach((p) => (p.disconnectedAt = 0));
+    assert.equal(shouldAutoReveal(room, 1_000_000, 5000), false);
+    room.participants.forEach((p) => (p.disconnectedAt = null));
+    setParticipantVote(room.id, "c", "3");
+    assert.equal(shouldAutoReveal(room, Date.now(), 5000), true);
+    revealVotes(room.id);
+    assert.equal(shouldAutoReveal(room, Date.now(), 5000), false);
+  });
+});
+
+describe("isBot", () => {
+  beforeEach(() => rooms.clear());
+
+  it("is false unless explicitly true, and appears in the snapshot", () => {
+    const room = createRoom("fibonacci");
+    addParticipant(room.id, { id: "h", name: "Human", emoji: "🎮" });
+    addParticipant(room.id, { id: "r", name: "Robot", emoji: "🤖", isBot: true });
+    addParticipant(room.id, { id: "s", name: "Sneaky", emoji: "🤖", isBot: "yes" });
+    const flags = roomToSnapshot(getRoom(room.id)).participants.map((p) => p.isBot);
+    assert.deepEqual(flags, [false, true, false]);
   });
 });

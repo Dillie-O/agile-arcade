@@ -32,6 +32,17 @@ export const LORE: string[] = [
  */
 export const RELEASES: Release[] = [
   {
+    version: "1.9.0",
+    date: "2026-11-16",
+    headline: "Robots at the table",
+    emoji: "🤖",
+    notes: [
+      "Bots that join a game wear a little 🤖 badge, so you always know who is human",
+      "A player who drops out without voting no longer keeps the round waiting forever",
+      "Refreshing your page is safe: the round still gives you a few seconds to come back",
+    ],
+  },
+  {
     version: "1.8.0",
     date: "2026-11-16",
     headline: "Your seat, your crown",
